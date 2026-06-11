@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Eye, Loader2, Lock } from 'lucide-react'
 import { neonClient, MASTER_ACCOUNT } from '@/lib/auth'
 import { Button } from '@/components/ui'
@@ -92,6 +92,16 @@ export default function AuthPage() {
 
       <div className="flex-1 flex items-center justify-center px-5 py-12">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
+          {/* Logo link to home — visible on mobile (left panel hidden) and always */}
+          <Link to="/" className="inline-flex items-center gap-2 mb-8 group">
+            <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center group-hover:border-[#1de9b6]/40 transition-colors">
+              <Eye className="w-4 h-4 text-[#1de9b6]" />
+            </div>
+            <span className="text-xl font-semibold group-hover:opacity-80 transition-opacity">
+              <span className="text-[#1de9b6]">Pro</span><span className="text-[#2979ff]">Azure</span>
+            </span>
+          </Link>
+
           <div className="mb-8">
             <p className="text-sm text-[#1de9b6] font-medium mb-2">ProAzure Software Solutions</p>
             <h2 className="text-3xl font-semibold tracking-tight">
