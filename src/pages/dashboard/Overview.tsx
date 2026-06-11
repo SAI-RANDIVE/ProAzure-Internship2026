@@ -4,7 +4,16 @@ import { motion } from 'framer-motion'
 import { Area, AreaChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AlertCircle, BookOpen, Calendar, TrendingUp, Upload, Users } from 'lucide-react'
 import { Badge, Card, EmptyState, StatCard } from '@/components/ui'
-import { getAttendanceForBatch, getBatches, getSessionsForBatch, type Batch } from '@/lib/db'
+import { 
+  getAttendanceForBatch, 
+  getBatches, 
+  getSessionsForBatch, 
+  getTotalStudentCount,
+  getTotalSessionCount,
+  getAverageAttendance,
+  getTotalAttendanceRecords,
+  type Batch 
+} from '@/lib/db'
 import { computeDaySummaries, computeStudentSummaries, getExpectedWeekdays } from '@/lib/csvParser'
 import { cn } from '@/lib/utils'
 
@@ -54,6 +63,19 @@ export default function Overview() {
 
     setLoading(true)
     try {
+      // Get dynamic totals from database
+      const [
+        totalStudents, 
+        totalSessions, 
+        avgAttendance, 
+        totalRecords
+      ] = await Promise.all([
+        getTotalStudentCount(effectiveInstructorId),
+        getTotalSessionCount(effectiveInstructorId),
+        getAverageAttendance(effectiveInstructorId),
+        getTotalAttendanceRecords(effectiveInstructorId),
+      ])
+
       const batchList = await getBatches(effectiveInstructorId)
       setBatches(batchList)
       if (!batchList.length) {
@@ -65,7 +87,6 @@ export default function Overview() {
       const allDailyMap = new Map<string, number>()
       const durationBuckets = { full: 0, partial: 0, brief: 0 }
       const batchStats: OverviewData['batchStats'] = []
-      let totalRecords = 0
       let missingDays = 0
 
       for (const batch of batchList) {
@@ -84,7 +105,6 @@ export default function Overview() {
         }))
 
         allRecords.push(...parsed)
-        totalRecords += parsed.length
         parsed.forEach(record => {
           allDailyMap.set(record.date, (allDailyMap.get(record.date) || 0) + 1)
           if (record.dur >= 90) durationBuckets.full++
@@ -111,9 +131,9 @@ export default function Overview() {
       const dailyData = [...allDailyMap.entries()]
         .sort((a, b) => a[0].localeCompare(b[0]))
         .slice(-20)
-        .map(([date, students]) => ({
+        .map(([date, count]) => ({
           date,
-          students,
+          students: count,
           label: new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
         }))
 
@@ -122,9 +142,9 @@ export default function Overview() {
         .map(student => ({ name: student.name, pct: student.attendancePct, days: student.daysAttended }))
 
       setData({
-        totalStudents: new Set(allRecords.map(record => record.name)).size,
-        totalSessions: totalSessionDays,
-        avgAttendance: batchStats.length ? Math.round(batchStats.reduce((sum, item) => sum + item.avg, 0) / batchStats.length) : 0,
+        totalStudents,
+        totalSessions,
+        avgAttendance,
         totalRecords,
         missingDays,
         dailyData,

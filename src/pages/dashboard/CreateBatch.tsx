@@ -1,10 +1,17 @@
 import { Card, Input, Select, Button } from '@/components/ui'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { createBatch } from '@/lib/db'
+
+interface OutletContext {
+  user: { id: string; name: string }
+  effectiveInstructorId: string
+  isMaster: boolean
+}
 
 export default function CreateBatch() {
   const navigate = useNavigate()
+  const { effectiveInstructorId } = useOutletContext<OutletContext>()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -17,7 +24,7 @@ export default function CreateBatch() {
     setLoading(true)
     try {
       await createBatch({
-        instructor_id: 'temp-user',
+        instructor_id: effectiveInstructorId,
         name: formData.name,
         mode: formData.mode,
         session_time: formData.session_time,

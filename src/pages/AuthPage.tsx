@@ -1,19 +1,20 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Loader2, Lock, Mail } from 'lucide-react'
-import { neonClient, MASTER_ACCOUNT, type AuthUser } from '@/lib/auth'
-import { initSchema, upsertInstructor } from '@/lib/db'
+import { Eye, Loader2, Lock } from 'lucide-react'
+import { neonClient, MASTER_ACCOUNT } from '@/lib/auth'
 import { Button, Input } from '@/components/ui'
 
 export default function AuthPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState(MASTER_ACCOUNT.email)
-  const [password, setPassword] = useState(MASTER_ACCOUNT.password)
-  const [name, setName] = useState('ProAzure Instructor')
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     const checkSession = async () => {
@@ -27,27 +28,29 @@ export default function AuthPage() {
     checkSession()
   }, [navigate])
 
-  async function ensureProfile(user: AuthUser) {
-    await initSchema()
-    await upsertInstructor({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      avatar_url: user.image,
-    })
-  }
-
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      const session = await neonClient.auth.signIn({ email, password, name })
-      await ensureProfile(session.user)
+      await neonClient.auth.signIn({ email, password })
       navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      await neonClient.auth.signUp({ email, password, name })
+      navigate('/dashboard', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign up failed.')
     } finally {
       setLoading(false)
     }
@@ -82,7 +85,7 @@ export default function AuthPage() {
           </div>
           <h1 className="text-5xl font-semibold tracking-tight mb-4">Internship attendance command center</h1>
           <p className="text-white/65 leading-relaxed">
-            Track instructor batches, validate Zoom CSV uploads, and review student attendance from one focused dashboard.
+            Track batches, validate Zoom CSV uploads, and review student attendance from one focused dashboard.
           </p>
         </motion.div>
       </div>
@@ -91,44 +94,131 @@ export default function AuthPage() {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
           <div className="mb-8">
             <p className="text-sm text-[#1de9b6] font-medium mb-2">ProAzure Software Solutions</p>
-            <h2 className="text-3xl font-semibold tracking-tight">Sign in</h2>
-            <p className="text-sm text-white/45 mt-2">CEO master access and instructor access use the same portal.</p>
+            <h2 className="text-3xl font-semibold tracking-tight">
+              {mode === 'signin' ? 'Sign in' : 'Create account'}
+            </h2>
+            <p className="text-sm text-white/45 mt-2">
+              {mode === 'signin' 
+                ? 'Login as instructor or CEO'
+                : 'Register as a new instructor'}
+            </p>
           </div>
 
-          <form onSubmit={handleSignIn} className="space-y-4">
+          {/* Mode Toggle */}
+          <div className="flex gap-2 mb-6 p-1 bg-white/5 rounded-lg border border-white/10">
+            <button
+              onClick={() => {
+                setMode('signin')
+                setError(null)
+                setEmail('')
+                setPassword('')
+                setName('')
+              }}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition ${
+                mode === 'signin'
+                  ? 'bg-[#1de9b6] text-black'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => {
+                setMode('signup')
+                setError(null)
+                setEmail('')
+                setPassword('')
+                setName('')
+              }}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition ${
+                mode === 'signup'
+                  ? 'bg-[#1de9b6] text-black'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          <form onSubmit={mode === 'signin' ? handleSignIn : handleSignUp} className="space-y-4">
             <Input
               label="Email"
               type="email"
+              placeholder={mode === 'signin' ? 'you@proazure.com' : 'instructor@proazure.com'}
               value={email}
-              onChange={e => setEmail(e.target.value)}
-              leftIcon={<Mail className="w-4 h-4" />}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              className="bg-white/5 border-white/10 text-white"
             />
-            <Input
-              label="Password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              leftIcon={<Lock className="w-4 h-4" />}
-              hint="Use the CEO credentials for master view, or any ProAzure instructor email for instructor view."
-              className="bg-white/5 border-white/10 text-white"
-            />
-            {email.trim().toLowerCase() !== MASTER_ACCOUNT.email && (
+
+            {mode === 'signup' && (
               <Input
-                label="Instructor Name"
+                label="Full Name"
+                type="text"
+                placeholder="Your name"
                 value={name}
-                onChange={e => setName(e.target.value)}
-                className="bg-white/5 border-white/10 text-white"
+                onChange={(e) => setName(e.target.value)}
+                required
               />
             )}
-            {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>}
-            <Button loading={loading} className="w-full h-12">Enter Dashboard</Button>
+
+            <div className="relative">
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder={mode === 'signin' ? 'Enter password' : 'At least 6 characters'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-white/40 hover:text-white/60"
+              >
+                {showPassword ? <Eye className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400"
+              >
+                {error}
+              </motion.div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#1de9b6] text-black hover:bg-[#1de9b6]/90 disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  {mode === 'signin' ? 'Signing in...' : 'Creating account...'}
+                </>
+              ) : (
+                mode === 'signin' ? 'Sign in' : 'Create account'
+              )}
+            </Button>
           </form>
 
-          <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4 text-xs text-white/55">
-            Master: {MASTER_ACCOUNT.email}
-          </div>
+          {mode === 'signin' && (
+            <div className="mt-6 p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+              <p className="text-xs text-blue-300 mb-2 font-medium">CEO Access</p>
+              <p className="text-xs text-white/50">
+                CEO account: <span className="text-white/70 font-mono">{MASTER_ACCOUNT.email}</span>
+              </p>
+            </div>
+          )}
+
+          <p className="text-xs text-white/40 text-center mt-8">
+            {mode === 'signin'
+              ? "Don't have an account? Create one with Sign Up above."
+              : 'Already have an account? Use Sign In above.'}
+          </p>
         </motion.div>
       </div>
     </div>

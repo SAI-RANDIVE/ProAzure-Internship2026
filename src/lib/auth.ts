@@ -42,28 +42,96 @@ function writeSession(user: AuthUser): AuthSession {
 export const neonClient = {
   auth: {
     getSession: async (): Promise<AuthSession | null> => readSession(),
-    signIn: async (credentials: { email: string; password?: string; name?: string }) => {
+    
+    signIn: async (credentials: { email: string; password: string }) => {
       const email = credentials.email.trim().toLowerCase()
-      if (email === MASTER_ACCOUNT.email && credentials.password === MASTER_ACCOUNT.password) {
-        return writeSession({
-          id: MASTER_ACCOUNT.id,
-          email: MASTER_ACCOUNT.email,
-          name: MASTER_ACCOUNT.name,
-          role: MASTER_ACCOUNT.role,
-        })
+      const password = credentials.password
+      
+      // Only CEO has hardcoded password
+      if (email === MASTER_ACCOUNT.email) {
+        if (password === MASTER_ACCOUNT.password) {
+          return writeSession({
+            id: MASTER_ACCOUNT.id,
+            email: MASTER_ACCOUNT.email,
+            name: MASTER_ACCOUNT.name,
+            role: MASTER_ACCOUNT.role,
+          })
+        } else {
+          throw new Error('Invalid credentials.')
+        }
       }
-
-      if (!email.endsWith('@proazuresoft.com') && !email.endsWith('@proazure.com')) {
-        throw new Error('Use a ProAzure instructor email address.')
+      
+      // For instructors, check if account exists in database
+      const { getInstructor } = await import('@/lib/db')
+      const instructorId = `instructor-${email.replace(/[^a-z0-9]/g, '-')}`
+      const instructor = await getInstructor(instructorId)
+      
+      if (!instructor) {
+        throw new Error('Instructor account not found. Please sign up first.')
       }
-
+      
+      // Verify password (in production, use bcrypt)
+      const storedPassword = localStorage.getItem(`instructor-pwd-${instructorId}`)
+      if (storedPassword !== password) {
+        throw new Error('Invalid credentials.')
+      }
+      
       return writeSession({
-        id: `instructor-${email.replace(/[^a-z0-9]/g, '-')}`,
+        id: instructor.id,
+        email: instructor.email,
+        name: instructor.name,
+        role: instructor.role,
+        image: instructor.avatar_url,
+      })
+    },
+    
+    signUp: async (credentials: { email: string; password: string; name: string }) => {
+      const email = credentials.email.trim().toLowerCase()
+      const password = credentials.password.trim()
+      const name = credentials.name.trim()
+      
+      if (!email || !password || !name) {
+        throw new Error('All fields are required.')
+      }
+      
+      if (password.length < 6) {
+        throw new Error('Password must be at least 6 characters.')
+      }
+      
+      if (email === MASTER_ACCOUNT.email) {
+        throw new Error('This email is reserved. Please use a different email.')
+      }
+      
+      // Check if instructor already exists
+      const instructorId = `instructor-${email.replace(/[^a-z0-9]/g, '-')}`
+      const { getInstructor, upsertInstructor, initSchema } = await import('@/lib/db')
+      const existing = await getInstructor(instructorId)
+      
+      if (existing) {
+        throw new Error('This instructor account already exists.')
+      }
+      
+      // Create new instructor
+      await initSchema()
+      await upsertInstructor({
+        id: instructorId,
         email,
-        name: credentials.name?.trim() || email.split('@')[0].replace(/[._-]+/g, ' '),
+        name,
+        role: 'instructor',
+        avatar_url: undefined,
+      })
+      
+      // Store password (in production, use bcrypt with salt)
+      localStorage.setItem(`instructor-pwd-${instructorId}`, password)
+      
+      return writeSession({
+        id: instructorId,
+        email,
+        name,
         role: 'instructor',
       })
     },
+    
     signOut: async () => {
       localStorage.removeItem(SESSION_KEY)
     },

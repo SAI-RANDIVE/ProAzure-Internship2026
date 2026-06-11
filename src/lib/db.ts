@@ -296,3 +296,79 @@ export async function getExistingAttendanceDates(batchId: string): Promise<Set<s
   `) as Array<{ session_date: string }>
   return new Set(rows.map(row => String(row.session_date).slice(0, 10)))
 }
+
+// ── Dynamic Analytics (Real-time from Database) ─────────────────────────────
+
+export async function getTotalStudentCount(instructorId?: string): Promise<number> {
+  const sql = getDb()
+  let rows
+  if (instructorId) {
+    rows = (await sql`
+      SELECT COUNT(DISTINCT student_name) as count FROM attendance
+      WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ${instructorId})
+    `) as Array<{ count: number }>
+  } else {
+    rows = (await sql`
+      SELECT COUNT(DISTINCT student_name) as count FROM attendance
+    `) as Array<{ count: number }>
+  }
+  return rows[0]?.count ?? 0
+}
+
+export async function getTotalSessionCount(instructorId?: string): Promise<number> {
+  const sql = getDb()
+  let rows
+  if (instructorId) {
+    rows = (await sql`
+      SELECT COUNT(DISTINCT session_date) as count FROM sessions
+      WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ${instructorId})
+    `) as Array<{ count: number }>
+  } else {
+    rows = (await sql`
+      SELECT COUNT(DISTINCT session_date) as count FROM sessions
+    `) as Array<{ count: number }>
+  }
+  return rows[0]?.count ?? 0
+}
+
+export async function getAverageAttendance(instructorId?: string): Promise<number> {
+  const sql = getDb()
+  let rows
+  if (instructorId) {
+    rows = (await sql`
+      SELECT 
+        ROUND(AVG(CASE 
+          WHEN duration_min > 0 THEN 100 
+          ELSE 0 
+        END)) as avg
+      FROM attendance
+      WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ${instructorId})
+    `) as Array<{ avg: number }>
+  } else {
+    rows = (await sql`
+      SELECT 
+        ROUND(AVG(CASE 
+          WHEN duration_min > 0 THEN 100 
+          ELSE 0 
+        END)) as avg
+      FROM attendance
+    `) as Array<{ avg: number }>
+  }
+  return rows[0]?.avg ?? 0
+}
+
+export async function getTotalAttendanceRecords(instructorId?: string): Promise<number> {
+  const sql = getDb()
+  let rows
+  if (instructorId) {
+    rows = (await sql`
+      SELECT COUNT(*) as count FROM attendance
+      WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ${instructorId})
+    `) as Array<{ count: number }>
+  } else {
+    rows = (await sql`
+      SELECT COUNT(*) as count FROM attendance
+    `) as Array<{ count: number }>
+  }
+  return rows[0]?.count ?? 0
+}
