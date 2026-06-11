@@ -1,3 +1,6 @@
+export type AttendanceSource = 'zoom' | 'google-meet' | 'zoom-meet' | 'auto'
+export type DetectedFormat = 'zoom' | 'google-meet' | 'mixed' | 'unknown'
+
 export interface ParsedRecord {
   name: string
   rawName: string
@@ -6,6 +9,7 @@ export interface ParsedRecord {
   leave: string
   dur: number
   sessionStart: string
+  sourceType: 'zoom' | 'google-meet'
 }
 
 // Name normalization map
@@ -33,7 +37,7 @@ const NAME_MAP: Record<string, string> = {
 }
 
 const SKIP_NAMES = new Set([
-  'Xiaomi Poco M2 Pro', 'Iphone 16', 'Pc', 'Unknown Device',
+  'Xiaomi Poco M2 Pro', 'Iphone', 'Iphone 16', 'Pc', 'Unknown Device',
 ])
 
 function titleCase(s: string): string {
@@ -61,15 +65,21 @@ function splitCsvLine(line: string): string[] {
 
 function parseDT(s: string): Date | null {
   if (!s) return null
-  let d = new Date(s)
+  const trimmed = s.replace(/^\*?\s*/, '').trim()
+  let d = new Date(trimmed)
   if (!isNaN(d.getTime())) return d
   // Try MM/DD/YYYY HH:MM:SS AM/PM
-  const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)/i)
+  const m = trimmed.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)/i)
   if (m) {
     let h = parseInt(m[4])
     if (m[7].toUpperCase() === 'PM' && h < 12) h += 12
     if (m[7].toUpperCase() === 'AM' && h === 12) h = 0
     return new Date(+m[3], +m[1] - 1, +m[2], h, +m[5], +m[6])
+  }
+  // Try YYYY-MM-DD HH:MM[:SS]
+  const isoLike = trimmed.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/)
+  if (isoLike) {
+    return new Date(+isoLike[1], +isoLike[2] - 1, +isoLike[3], +isoLike[4], +isoLike[5], +(isoLike[6] || 0))
   }
   return null
 }
@@ -86,41 +96,97 @@ function fmtTime(d: Date): string {
 
 export interface ParseResult {
   records: ParsedRecord[]
+  dates: string[]
+  newDates: string[]
   weekendSkipped: number
   hostSkipped: number
   deviceSkipped: number
-  dates: string[]
-  newDates: string[]
   duplicateRecords: number
   format: string
+  detectedFormat: DetectedFormat
 }
 
-export function parseZoomCsv(text: string, existingDates: Set<string>): ParseResult {
+function emptyParseResult(format: DetectedFormat = 'unknown'): ParseResult {
+  return {
+    records: [],
+    weekendSkipped: 0,
+    hostSkipped: 0,
+    deviceSkipped: 0,
+    dates: [],
+    newDates: [],
+    duplicateRecords: 0,
+    format,
+    detectedFormat: format,
+  }
+}
+
+function resultFor(records: ParsedRecord[], existingDates: Set<string>, counters: Pick<ParseResult, 'weekendSkipped' | 'hostSkipped' | 'deviceSkipped' | 'duplicateRecords'>, format: DetectedFormat): ParseResult {
+  const allDates = [...new Set(records.map(r => r.date))].sort()
+  const newDates = allDates.filter(d => !existingDates.has(d))
+  return { records, dates: allDates, newDates, format, detectedFormat: format, ...counters }
+}
+
+function addMinutes(d: Date, mins: number): Date {
+  return new Date(d.getTime() + mins * 60 * 1000)
+}
+
+function normalizeHeaders(text: string): string[] {
+  const firstLine = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').find(line => line.trim()) || ''
+  return splitCsvLine(firstLine).map(h => h.toLowerCase().trim())
+}
+
+function detectCsvFormat(text: string): DetectedFormat {
+  const lower = text.slice(0, 3000).toLowerCase()
+  const headers = normalizeHeaders(text)
+  const looksZoom = headers.includes('topic') && headers.some(h => h.includes('join time')) && headers.some(h => h.includes('name'))
+  const looksMeet = lower.includes('meet') && lower.includes('meeting code') && lower.includes('full name')
+  if (looksZoom && looksMeet) return 'mixed'
+  if (looksZoom) return 'zoom'
+  if (looksMeet) return 'google-meet'
+  return 'unknown'
+}
+
+function parseZoomCsvInternal(text: string, existingDates: Set<string>): ParseResult {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
-  if (lines.length < 2) return { records: [], weekendSkipped: 0, hostSkipped: 0, deviceSkipped: 0, dates: [], newDates: [], duplicateRecords: 0, format: 'unknown' }
+  if (lines.length < 2) return emptyParseResult('unknown')
 
   const headers = splitCsvLine(lines[0])
+  const normalizedHeaders = headers.map(h => h.toLowerCase().trim())
+  const findHeader = (...matchers: Array<(header: string, index: number) => boolean>) => {
+    for (const matcher of matchers) {
+      const index = normalizedHeaders.findIndex(matcher)
+      if (index !== -1) return index
+    }
+    return -1
+  }
   
   // Flexible column detection
-  const nameKey = headers.findIndex(h => 
-    h.toLowerCase().includes('name') || 
-    h.toLowerCase().includes('participant')
+  const nameKey = findHeader(
+    h => h.includes('original name'),
+    h => h === 'participant' || h === 'participant name' || h === 'user name',
+    h => h.includes('participant') && h.includes('name'),
+    h => h === 'name'
   )
-  const joinKey = headers.findIndex(h => 
-    h.toLowerCase().includes('join') || 
-    h.toLowerCase().includes('entry')
+  const joinKey = findHeader(
+    h => h === 'join time',
+    h => h.includes('join'),
+    h => h.includes('entry')
   )
-  const leaveKey = headers.findIndex(h => 
-    h.toLowerCase().includes('leave') || 
-    h.toLowerCase().includes('exit')
+  const leaveKey = findHeader(
+    h => h === 'leave time',
+    h => h.includes('leave'),
+    h => h.includes('exit')
   )
-  const durIdx = headers.findIndex(h => 
-    h.toLowerCase().includes('duration') || 
-    h.toLowerCase().includes('time')
+  const durIdx = findHeader(
+    (h, index) => h.includes('duration') && index > joinKey,
+    h => h.includes('participant') && h.includes('minutes'),
+    h => h === 'duration'
   )
-  const startKey = headers.findIndex(h => 
-    h.toLowerCase().includes('start')
+  const startKey = findHeader(
+    h => h === 'start time',
+    h => h.includes('session start')
   )
+  const hostNameKey = findHeader(h => h === 'host name')
 
   if (nameKey === -1 || joinKey === -1) {
     throw new Error(`Invalid CSV format. Could not find name and join/entry columns. Headers: ${headers.join(', ')}`)
@@ -140,7 +206,9 @@ export function parseZoomCsv(text: string, existingDates: Set<string>): ParseRes
     const rawName = (parts[nameKey] || '').trim()
     if (!rawName) continue
 
-    if (rawName.toLowerCase().includes('host')) { hostSkipped++; continue }
+    const hostName = hostNameKey !== -1 ? (parts[hostNameKey] || '').trim().toLowerCase() : ''
+    const rawNameLower = rawName.toLowerCase()
+    if (rawNameLower.includes('host') || (hostName && rawNameLower === hostName)) { hostSkipped++; continue }
 
     const name = canonicalName(rawName)
     if (!name) { deviceSkipped++; continue }
@@ -173,13 +241,114 @@ export function parseZoomCsv(text: string, existingDates: Set<string>): ParseRes
       leave: leaveDt ? fmtTime(leaveDt) : '',
       dur,
       sessionStart: startDt ? fmtTime(startDt) : '',
+      sourceType: 'zoom',
     })
   }
 
-  const allDates = [...new Set(records.map(r => r.date))].sort()
-  const newDates = allDates.filter(d => !existingDates.has(d))
+  return resultFor(records, existingDates, { weekendSkipped, hostSkipped, deviceSkipped, duplicateRecords }, 'zoom')
+}
 
-  return { records, weekendSkipped, hostSkipped, deviceSkipped, dates: allDates, newDates, duplicateRecords, format: 'zoom' }
+function parseGoogleMeetCsvInternal(text: string, existingDates: Set<string>, defaultDurationMin: number): ParseResult {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
+  if (lines.length < 2) return emptyParseResult('google-meet')
+
+  let meetingStart: Date | null = null
+  let meetingEnd: Date | null = null
+  let nameStart = -1
+
+  for (let i = 0; i < lines.length; i++) {
+    const values = splitCsvLine(lines[i])
+    const value = (values[0] || '').trim()
+    const lower = value.toLowerCase()
+    if (lower.includes('created on')) {
+      meetingStart = parseDT(value.replace(/^\*?\s*created on\s*/i, ''))
+    }
+    if (lower.includes('ended on')) {
+      meetingEnd = parseDT(value.replace(/^\*?\s*ended on\s*/i, ''))
+    }
+    if (lower === 'full name') {
+      nameStart = i + 1
+      break
+    }
+  }
+
+  if (!meetingStart) {
+    throw new Error('Invalid Google Meet CSV. Could not find the "Created on" meeting timestamp.')
+  }
+  if (nameStart === -1) {
+    throw new Error('Invalid Google Meet CSV. Could not find the "Full Name" column.')
+  }
+
+  const effectiveDuration = Math.max(1, Math.round(defaultDurationMin || 1))
+  if (!meetingEnd || meetingEnd <= meetingStart) {
+    meetingEnd = addMinutes(meetingStart, effectiveDuration)
+  }
+  const durationMin = Math.max(1, Math.round((meetingEnd.getTime() - meetingStart.getTime()) / 60000))
+
+  const records: ParsedRecord[] = []
+  let weekendSkipped = 0
+  let hostSkipped = 0
+  let deviceSkipped = 0
+  let duplicateRecords = 0
+  const seen = new Set<string>()
+  const dow = meetingStart.getDay()
+
+  for (let i = nameStart; i < lines.length; i++) {
+    if (!lines[i].trim()) continue
+    const parts = splitCsvLine(lines[i])
+    const rawName = (parts[0] || '').trim()
+    if (!rawName) continue
+    if (rawName.toLowerCase().includes('host')) { hostSkipped++; continue }
+
+    const name = canonicalName(rawName)
+    if (!name) { deviceSkipped++; continue }
+    if (dow === 0 || dow === 6) { weekendSkipped++; continue }
+
+    const recordKey = `${name}|${fmtDate(meetingStart)}|${fmtTime(meetingStart)}|google-meet`
+    if (seen.has(recordKey)) {
+      duplicateRecords++
+      continue
+    }
+    seen.add(recordKey)
+
+    records.push({
+      name,
+      rawName: titleCase(rawName),
+      date: fmtDate(meetingStart),
+      join: fmtTime(meetingStart),
+      leave: fmtTime(meetingEnd),
+      dur: durationMin,
+      sessionStart: fmtTime(meetingStart),
+      sourceType: 'google-meet',
+    })
+  }
+
+  return resultFor(records, existingDates, { weekendSkipped, hostSkipped, deviceSkipped, duplicateRecords }, 'google-meet')
+}
+
+export function parseAttendanceCsv(
+  text: string,
+  existingDates: Set<string>,
+  source: AttendanceSource = 'auto',
+  options: { defaultMeetDurationMin?: number } = {}
+): ParseResult {
+  const detected = detectCsvFormat(text)
+  const defaultMeetDurationMin = options.defaultMeetDurationMin ?? 120
+
+  if (source === 'zoom') return parseZoomCsvInternal(text, existingDates)
+  if (source === 'google-meet') return parseGoogleMeetCsvInternal(text, existingDates, defaultMeetDurationMin)
+  if (source === 'zoom-meet') {
+    if (detected === 'google-meet') return parseGoogleMeetCsvInternal(text, existingDates, defaultMeetDurationMin)
+    if (detected === 'zoom') return parseZoomCsvInternal(text, existingDates)
+    throw new Error('Could not detect Zoom or Google Meet data in this CSV.')
+  }
+  if (detected === 'google-meet') return parseGoogleMeetCsvInternal(text, existingDates, defaultMeetDurationMin)
+  if (detected === 'zoom') return parseZoomCsvInternal(text, existingDates)
+  throw new Error('Unknown attendance CSV format. Choose Zoom or Google Meet and upload a matching CSV.')
+}
+
+export function parseZoomCsv(text: string, existingDates: Set<string>): ParseResult {
+  return parseZoomCsvInternal(text, existingDates)
 }
 
 // ── Analytics helpers ─────────────────────────────────────────────────────────

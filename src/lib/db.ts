@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS csv_uploads (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   batch_id      UUID NOT NULL REFERENCES batches(id) ON DELETE CASCADE,
   filename      TEXT NOT NULL,
+  source_type   TEXT NOT NULL DEFAULT 'zoom',
   date_range_start DATE,
   date_range_end   DATE,
   records_added INT DEFAULT 0,
@@ -66,8 +67,9 @@ CREATE TABLE IF NOT EXISTS attendance (
   duration_min   INT NOT NULL DEFAULT 0,
   session_start  TEXT,
   raw_name       TEXT,
+  source_type    TEXT NOT NULL DEFAULT 'zoom',
   created_at     TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(batch_id, student_name, session_date, join_time)
+  UNIQUE(batch_id, student_name, session_date, join_time, source_type)
 );
 
 CREATE INDEX IF NOT EXISTS idx_attendance_batch ON attendance(batch_id);
@@ -77,6 +79,11 @@ CREATE INDEX IF NOT EXISTS idx_sessions_batch   ON sessions(batch_id);
 ALTER TABLE instructors ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'instructor';
 ALTER TABLE instructors DROP CONSTRAINT IF EXISTS instructors_role_check;
 ALTER TABLE instructors ADD CONSTRAINT instructors_role_check CHECK (role IN ('master','instructor'));
+ALTER TABLE csv_uploads ADD COLUMN IF NOT EXISTS source_type TEXT NOT NULL DEFAULT 'zoom';
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS source_type TEXT NOT NULL DEFAULT 'zoom';
+ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_batch_id_student_name_session_date_join_time_key;
+ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_batch_student_date_join_source_key;
+ALTER TABLE attendance ADD CONSTRAINT attendance_batch_student_date_join_source_key UNIQUE(batch_id, student_name, session_date, join_time, source_type);
 `
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -119,6 +126,7 @@ export interface AttendanceRecord {
   duration_min: number
   session_start: string
   raw_name: string
+  source_type: 'zoom' | 'google-meet'
 }
 
 export interface CsvUpload {
@@ -128,6 +136,7 @@ export interface CsvUpload {
   date_range_start: string
   date_range_end: string
   records_added: number
+  source_type: 'zoom' | 'google-meet' | 'zoom-meet'
   uploaded_at: string
 }
 
@@ -251,9 +260,9 @@ export async function bulkInsertAttendance(records: Omit<AttendanceRecord,'id'|'
   for (const r of records) {
     try {
       const result = (await sql`
-        INSERT INTO attendance (batch_id, student_name, session_date, join_time, leave_time, duration_min, session_start, raw_name)
-        VALUES (${r.batch_id}, ${r.student_name}, ${r.session_date}, ${r.join_time}, ${r.leave_time}, ${r.duration_min}, ${r.session_start}, ${r.raw_name})
-        ON CONFLICT (batch_id, student_name, session_date, join_time) DO NOTHING
+        INSERT INTO attendance (batch_id, student_name, session_date, join_time, leave_time, duration_min, session_start, raw_name, source_type)
+        VALUES (${r.batch_id}, ${r.student_name}, ${r.session_date}, ${r.join_time}, ${r.leave_time}, ${r.duration_min}, ${r.session_start}, ${r.raw_name}, ${r.source_type})
+        ON CONFLICT (batch_id, student_name, session_date, join_time, source_type) DO NOTHING
         RETURNING id
       `) as Array<{ id: string }>
       if (result.length > 0) inserted++
@@ -276,8 +285,8 @@ export async function upsertSession(batchId: string, date: string, topic?: strin
 export async function logCsvUpload(data: Omit<CsvUpload,'id'|'uploaded_at'>): Promise<void> {
   const sql = getDb()
   await sql`
-    INSERT INTO csv_uploads (batch_id, filename, date_range_start, date_range_end, records_added)
-    VALUES (${data.batch_id}, ${data.filename}, ${data.date_range_start}, ${data.date_range_end}, ${data.records_added})
+    INSERT INTO csv_uploads (batch_id, filename, source_type, date_range_start, date_range_end, records_added)
+    VALUES (${data.batch_id}, ${data.filename}, ${data.source_type}, ${data.date_range_start}, ${data.date_range_end}, ${data.records_added})
   `
 }
 

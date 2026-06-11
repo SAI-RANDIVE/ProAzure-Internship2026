@@ -102,6 +102,7 @@ export default function Overview() {
           leave: r.leave_time,
           dur: r.duration_min,
           sessionStart: r.session_start,
+          sourceType: r.source_type || 'zoom',
         }))
 
         allRecords.push(...parsed)
