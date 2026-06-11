@@ -1,10 +1,11 @@
 import { Card, Button } from '@/components/ui'
-import { useState } from 'react'
-import { AlertCircle, CheckCircle, Upload, Loader2, Video, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertCircle, CheckCircle, Upload, Loader2, Video, Users, BookOpen } from 'lucide-react'
 import { type AttendanceSource, parseAttendanceCsv } from '@/lib/csvParser'
-import { getExistingAttendanceDates, bulkInsertAttendance, getAttendanceForBatch, logCsvUpload, upsertSession } from '@/lib/db'
+import { getExistingAttendanceDates, bulkInsertAttendance, getAttendanceForBatch, logCsvUpload, upsertSession, getBatches, getBatch, type Batch } from '@/lib/db'
 import { motion } from 'framer-motion'
 import readXlsxFile, { type Row } from 'read-excel-file/browser'
+import { Link, useOutletContext, useSearchParams } from 'react-router-dom'
 
 type UploadSource = Exclude<AttendanceSource, 'auto'>
 
@@ -29,13 +30,22 @@ interface UploadResult {
   detectedFormat: string
 }
 
+interface OutletContext {
+  effectiveInstructorId: string
+  isMaster: boolean
+}
+
 export default function UploadCSV() {
+  const { effectiveInstructorId, isMaster } = useOutletContext<OutletContext>()
+  const [searchParams] = useSearchParams()
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
+  const [batchesLoading, setBatchesLoading] = useState(true)
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState<UploadResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [batchId, setBatchId] = useState('')
+  const [batches, setBatches] = useState<Batch[]>([])
   const [sourceType, setSourceType] = useState<UploadSource>('zoom')
   const [meetDuration, setMeetDuration] = useState(120)
 
@@ -76,6 +86,37 @@ export default function UploadCSV() {
     return text.includes('\t') && !text.includes(',') ? text.replace(/\t/g, ',') : text
   }
 
+  useEffect(() => {
+    const loadBatches = async () => {
+      if (!effectiveInstructorId) {
+        setBatches([])
+        setBatchId('')
+        setBatchesLoading(false)
+        return
+      }
+
+      setBatchesLoading(true)
+      try {
+        const list = await getBatches(effectiveInstructorId)
+        setBatches(list)
+        const requestedBatchId = normalizeBatchId(searchParams.get('batchId') || '')
+        const requested = list.find(batch => batch.id === requestedBatchId)
+        setBatchId(current => {
+          if (requested) return requested.id
+          if (current && list.some(batch => batch.id === current)) return current
+          return list[0]?.id || ''
+        })
+      } catch (err) {
+        console.error('Batch load error:', err)
+        setError(err instanceof Error ? err.message : 'Unable to load batches for upload.')
+      } finally {
+        setBatchesLoading(false)
+      }
+    }
+
+    loadBatches()
+  }, [effectiveInstructorId, searchParams])
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (!selectedFile) return
@@ -107,7 +148,7 @@ export default function UploadCSV() {
     e.preventDefault()
     const cleanBatchId = normalizeBatchId(batchId)
     if (!file || !cleanBatchId) {
-      setError('Please select a file and enter batch ID')
+      setError('Please select a batch and file')
       return
     }
 
@@ -143,9 +184,17 @@ export default function UploadCSV() {
 
       // Validate batch exists
       try {
-        await getAttendanceForBatch(cleanBatchId)
-        // If query succeeds but returns empty, batch might still be valid (no records yet)
-        // If query fails with 400/404, batch ID is invalid
+        const selectedBatch = await getBatch(cleanBatchId)
+        if (!selectedBatch) {
+          setError('Batch not found. Please select a batch from the list and try again.')
+          setLoading(false)
+          return
+        }
+        if (effectiveInstructorId && selectedBatch.instructor_id !== effectiveInstructorId) {
+          setError('This batch belongs to a different instructor. Select the matching instructor or batch first.')
+          setLoading(false)
+          return
+        }
       } catch (batchErr) {
         setError(`Batch ID not found. Please check and try again. Error: ${batchErr instanceof Error ? batchErr.message : 'Unknown error'}`)
         setLoading(false)
@@ -249,17 +298,48 @@ export default function UploadCSV() {
         <p className="text-sm text-muted-foreground mb-6">Upload Zoom reports, Google Meet extension CSVs, or batches that use both platforms</p>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Batch ID Input */}
+          {/* Batch Selection */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Batch ID</label>
-            <input
-              type="text"
-              placeholder="Enter batch ID (or paste from URL)"
-              value={batchId}
-              onChange={(e) => setBatchId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
-            />
-            <p className="text-xs text-muted-foreground mt-1">Find batch ID in your batch list or dashboard URL</p>
+            <label className="block text-sm font-medium text-foreground mb-2">Batch</label>
+            {batchesLoading ? (
+              <div className="h-11 rounded-lg bg-gray-100 border border-gray-200 animate-pulse" />
+            ) : batches.length > 0 ? (
+              <>
+                <select
+                  value={batchId}
+                  onChange={(e) => setBatchId(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                >
+                  {batches.map(batch => (
+                    <option key={batch.id} value={batch.id}>
+                      {batch.name} · {batch.id.slice(0, 8)}
+                    </option>
+                  ))}
+                </select>
+                {batchId && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Uploading into batch ID <span className="font-mono text-foreground">{batchId}</span>
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-start gap-3">
+                  <BookOpen className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{isMaster && !effectiveInstructorId ? 'No instructor selected' : 'No batches found'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {isMaster && !effectiveInstructorId ? 'Select an instructor from CEO view first.' : 'Create a batch first, then return here to upload attendance.'}
+                    </p>
+                    {(!isMaster || effectiveInstructorId) && (
+                      <Link to="/dashboard/batches/new" className="inline-flex mt-3 text-xs font-medium text-primary hover:underline">
+                        Create a batch
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Attendance Source */}
@@ -415,7 +495,7 @@ export default function UploadCSV() {
             </Button>
             <Button 
               type="submit" 
-              disabled={!file || !batchId || loading}
+              disabled={!file || !batchId || loading || batchesLoading}
               className="bg-[#1de9b6] text-black hover:bg-[#1de9b6]/90 disabled:opacity-50"
             >
               {loading ? (
