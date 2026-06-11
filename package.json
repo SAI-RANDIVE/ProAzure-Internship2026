@@ -1,0 +1,36 @@
+{
+  "name": "proazure-internship-2026",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.3.4",
+    "@neondatabase/serverless": "^0.9.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "framer-motion": "^10.16.4",
+    "lucide-react": "^0.292.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "recharts": "^2.10.3",
+    "tailwind-merge": "^2.2.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.2.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8"
+  }
+}
