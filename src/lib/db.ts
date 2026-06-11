@@ -141,7 +141,7 @@ export async function initSchema() {
   for (const stmt of statements) {
     try {
       // Use raw template string for DDL statements
-      const result = await (sql as any)(stmt)
+      await (sql as any)(stmt)
       console.log('Schema statement executed')
     } catch (e) {
       console.error('Schema init error:', e)
@@ -171,8 +171,8 @@ export async function getInstructors(): Promise<Instructor[]> {
   const sql = getDb()
   const rows = (await sql`
     SELECT * FROM instructors WHERE role = 'instructor' ORDER BY name ASC
-  `
-  return rows as Instructor[]
+  `) as Instructor[]
+  return rows
 }
 
 export async function getBatches(instructorId: string): Promise<Batch[]> {
@@ -193,13 +193,13 @@ export async function getAllBatches(): Promise<Batch[]> {
 
 export async function createBatch(data: Omit<Batch,'id'|'created_at'>): Promise<Batch> {
   const sql = getDb()
-  const rows = await sql`
+  const rows = (await sql`
     INSERT INTO batches (instructor_id, name, description, mode, start_date, end_date, session_time)
     VALUES (${data.instructor_id}, ${data.name}, ${data.description ?? null},
             ${data.mode}, ${data.start_date}, ${data.end_date}, ${data.session_time ?? null})
     RETURNING *
-  `
-  return rows[0] as Batch
+  `) as Batch[]
+  return rows[0]
 }
 
 export async function updateBatch(id: string, data: Partial<Omit<Batch,'id'|'instructor_id'|'created_at'>>): Promise<void> {
@@ -223,8 +223,8 @@ export async function deleteBatch(id: string): Promise<void> {
 
 export async function getBatch(id: string): Promise<Batch | null> {
   const sql = getDb()
-  const rows = await sql`SELECT * FROM batches WHERE id = ${id}`
-  return (rows[0] as Batch) ?? null
+  const rows = (await sql`SELECT * FROM batches WHERE id = ${id}`) as Batch[]
+  return rows[0] ?? null
 }
 
 export async function getAttendanceForBatch(batchId: string): Promise<AttendanceRecord[]> {
@@ -250,12 +250,12 @@ export async function bulkInsertAttendance(records: Omit<AttendanceRecord,'id'|'
   let inserted = 0
   for (const r of records) {
     try {
-      const result = await sql`
+      const result = (await sql`
         INSERT INTO attendance (batch_id, student_name, session_date, join_time, leave_time, duration_min, session_start, raw_name)
         VALUES (${r.batch_id}, ${r.student_name}, ${r.session_date}, ${r.join_time}, ${r.leave_time}, ${r.duration_min}, ${r.session_start}, ${r.raw_name})
         ON CONFLICT (batch_id, student_name, session_date, join_time) DO NOTHING
         RETURNING id
-      `
+      `) as Array<{ id: string }>
       if (result.length > 0) inserted++
     } catch (e) {
       console.error('Insert error:', e)
