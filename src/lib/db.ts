@@ -143,6 +143,50 @@ export interface CsvUpload {
   uploaded_at: string
 }
 
+// ── Row normalizers ───────────────────────────────────────────────────────────
+function dateStr(v: unknown): string {
+  if (v instanceof Date) return v.toISOString().slice(0, 10)
+  return String(v ?? '')
+}
+
+function tsStr(v: unknown): string {
+  if (v instanceof Date) return v.toISOString()
+  return String(v ?? '')
+}
+
+function normalizeBatch(row: any): Batch {
+  return {
+    ...row,
+    start_date: dateStr(row.start_date),
+    end_date: dateStr(row.end_date),
+    created_at: tsStr(row.created_at),
+  }
+}
+
+function normalizeCsvUpload(row: any): CsvUpload {
+  return {
+    ...row,
+    date_range_start: dateStr(row.date_range_start),
+    date_range_end: dateStr(row.date_range_end),
+    uploaded_at: tsStr(row.uploaded_at),
+  }
+}
+
+function normalizeAttendance(row: any): AttendanceRecord {
+  return {
+    ...row,
+    session_date: dateStr(row.session_date),
+  }
+}
+
+function normalizeSession(row: any): Session {
+  return {
+    ...row,
+    session_date: dateStr(row.session_date),
+    created_at: tsStr(row.created_at),
+  }
+}
+
 // ── DB helpers ────────────────────────────────────────────────────────────────
 export async function initSchema() {
   const sql = getDb()
@@ -192,7 +236,7 @@ export async function getBatches(instructorId: string): Promise<Batch[]> {
   const rows = await sql`
     SELECT * FROM batches WHERE instructor_id = ${instructorId} ORDER BY created_at DESC
   `
-  return rows as Batch[]
+  return (rows as any[]).map(normalizeBatch)
 }
 
 export async function getAllBatches(): Promise<Batch[]> {
@@ -200,7 +244,7 @@ export async function getAllBatches(): Promise<Batch[]> {
   const rows = await sql`
     SELECT * FROM batches ORDER BY created_at DESC
   `
-  return rows as Batch[]
+  return (rows as any[]).map(normalizeBatch)
 }
 
 export async function generateNextBatchCode(): Promise<string> {
@@ -218,8 +262,8 @@ export async function createBatch(data: Omit<Batch,'id'|'batch_code'|'created_at
     VALUES (${batchCode}, ${data.instructor_id}, ${data.name}, ${data.description ?? null},
             ${data.mode}, ${data.start_date}, ${data.end_date}, ${data.session_time ?? null})
     RETURNING *
-  `) as Batch[]
-  return rows[0]
+  `) as any[]
+  return normalizeBatch(rows[0])
 }
 
 export async function updateBatch(id: string, data: Partial<Omit<Batch,'id'|'instructor_id'|'created_at'>>): Promise<void> {
@@ -243,8 +287,8 @@ export async function deleteBatch(id: string): Promise<void> {
 
 export async function getBatch(id: string): Promise<Batch | null> {
   const sql = getDb()
-  const rows = (await sql`SELECT * FROM batches WHERE id = ${id}`) as Batch[]
-  return rows[0] ?? null
+  const rows = (await sql`SELECT * FROM batches WHERE id = ${id}`) as any[]
+  return rows[0] ? normalizeBatch(rows[0]) : null
 }
 
 export async function getAttendanceForBatch(batchId: string): Promise<AttendanceRecord[]> {
@@ -253,7 +297,7 @@ export async function getAttendanceForBatch(batchId: string): Promise<Attendance
     SELECT * FROM attendance WHERE batch_id = ${batchId}
     ORDER BY session_date ASC, student_name ASC
   `
-  return rows as AttendanceRecord[]
+  return (rows as any[]).map(normalizeAttendance)
 }
 
 export async function getSessionsForBatch(batchId: string): Promise<Session[]> {
@@ -261,7 +305,7 @@ export async function getSessionsForBatch(batchId: string): Promise<Session[]> {
   const rows = await sql`
     SELECT * FROM sessions WHERE batch_id = ${batchId} ORDER BY session_date ASC
   `
-  return rows as Session[]
+  return (rows as any[]).map(normalizeSession)
 }
 
 export async function bulkInsertAttendance(records: Omit<AttendanceRecord,'id'|'created_at'>[]): Promise<number> {
@@ -306,7 +350,7 @@ export async function getCsvUploads(batchId: string): Promise<CsvUpload[]> {
   const rows = await sql`
     SELECT * FROM csv_uploads WHERE batch_id = ${batchId} ORDER BY uploaded_at DESC
   `
-  return rows as CsvUpload[]
+  return (rows as any[]).map(normalizeCsvUpload)
 }
 
 export async function getExistingAttendanceDates(batchId: string): Promise<Set<string>> {
