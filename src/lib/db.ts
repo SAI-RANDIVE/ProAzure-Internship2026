@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS instructors (
 
 CREATE TABLE IF NOT EXISTS batches (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  batch_code    TEXT UNIQUE,
   instructor_id TEXT NOT NULL REFERENCES instructors(id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
   description   TEXT,
@@ -141,6 +142,7 @@ ALTER TABLE attendance ADD COLUMN IF NOT EXISTS source_type TEXT NOT NULL DEFAUL
 ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_batch_id_student_name_session_date_join_time_key;
 ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_batch_student_date_join_source_key;
 ALTER TABLE attendance ADD CONSTRAINT attendance_batch_student_date_join_source_key UNIQUE(batch_id, student_name, session_date, join_time, source_type);
+ALTER TABLE batches ADD COLUMN IF NOT EXISTS batch_code TEXT;
 `
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -155,6 +157,7 @@ export interface Instructor {
 
 export interface Batch {
   id: string
+  batch_code: string
   instructor_id: string
   name: string
   description?: string
@@ -257,11 +260,19 @@ export async function getAllBatches(): Promise<Batch[]> {
   return (rows as Batch[]).map(normalizeBatch)
 }
 
-export async function createBatch(data: Omit<Batch,'id'|'created_at'>): Promise<Batch> {
+export async function generateNextBatchCode(): Promise<string> {
   const sql = getDb()
+  const rows = (await sql`SELECT COUNT(*) as count FROM batches`) as Array<{ count: number }>
+  const count = Number(rows[0]?.count ?? 0)
+  return `BATCH${String(count + 1).padStart(3, '0')}`
+}
+
+export async function createBatch(data: Omit<Batch,'id'|'batch_code'|'created_at'>): Promise<Batch> {
+  const sql = getDb()
+  const batchCode = await generateNextBatchCode()
   const rows = (await sql`
-    INSERT INTO batches (instructor_id, name, description, mode, start_date, end_date, session_time)
-    VALUES (${data.instructor_id}, ${data.name}, ${data.description ?? null},
+    INSERT INTO batches (batch_code, instructor_id, name, description, mode, start_date, end_date, session_time)
+    VALUES (${batchCode}, ${data.instructor_id}, ${data.name}, ${data.description ?? null},
             ${data.mode}, ${data.start_date}, ${data.end_date}, ${data.session_time ?? null})
     RETURNING *
   `) as Batch[]
