@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, Loader2, Lock } from 'lucide-react'
 import { neonClient, MASTER_ACCOUNT } from '@/lib/auth'
-import { Button, Input } from '@/components/ui'
+import { Button } from '@/components/ui'
 
 export default function AuthPage() {
   const navigate = useNavigate()
@@ -141,42 +141,51 @@ export default function AuthPage() {
           </div>
 
           <form onSubmit={mode === 'signin' ? handleSignIn : handleSignUp} className="space-y-4">
-            <Input
-              label="Email"
-              type="email"
-              placeholder={mode === 'signin' ? 'you@proazure.com' : 'instructor@proazure.com'}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Email</label>
+              <input
+                type="email"
+                placeholder={mode === 'signin' ? 'you@proazure.com' : 'instructor@proazure.com'}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+              />
+            </div>
 
             {mode === 'signup' && (
-              <Input
-                label="Full Name"
-                type="text"
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Full Name</label>
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                />
+              </div>
             )}
 
-            <div className="relative">
-              <Input
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder={mode === 'signin' ? 'Enter password' : 'At least 6 characters'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-white/40 hover:text-white/60"
-              >
-                {showPassword ? <Eye className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder={mode === 'signin' ? 'Enter password' : 'At least 6 characters'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60"
+                >
+                  {showPassword ? <Eye className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             {error && (

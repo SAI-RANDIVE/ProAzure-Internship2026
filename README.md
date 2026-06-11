@@ -1,6 +1,6 @@
 # 🎓 ProAzure Internship 2026 - Attendance Tracking SaaS
 
-> **Professional, Real-time, Multi-Tenant Attendance Management System for Web Internship Programs**
+> **Enterprise-Grade, Real-time, Multi-Tenant Attendance Management System for Professional Internship Programs**
 
 <div align="center">
 
@@ -9,6 +9,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue?style=flat-square&logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-teal?style=flat-square&logo=tailwindcss)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791?style=flat-square&logo=postgresql)
+![Vite](https://img.shields.io/badge/Vite-5.0-yellow?style=flat-square&logo=vite)
 
 </div>
 
@@ -16,138 +17,501 @@
 
 ## 📌 Overview
 
-ProAzure Internship 2026 is a **production-ready SaaS platform** for managing student attendance during the Web Internship program (June 1 - August 30, 2026). Built with cutting-edge technology.
+ProAzure Internship 2026 is a **production-ready, SaaS platform** for managing student attendance during professional internship programs. Built with modern technologies and best practices for reliability, security, and performance.
 
-✨ **Real-time Analytics** | 🔐 **Secure Multi-Tenant** | 📊 **Beautiful Dashboards** | 🚀 **Lightning-Fast** | 🎨 **Fully Responsive**
+> **🔒 Secure • 📊 Real-time Analytics • 🎯 Multi-Tenant • 🚀 Lightning-Fast • ♿ Fully Accessible**
 
-## Features
+## ✨ Core Features
 
-✅ **Google Authentication** - Sign in with Gmail accounts
-✅ **Multi-Instructor SaaS** - Each instructor manages their own batch
-✅ **CSV Upload & Parsing** - Upload Zoom meeting reports
-✅ **Smart Data Processing** - Automatic name normalization, weekend filtering, deduplication
-✅ **Real-time Dashboard** - Beautiful, colorful analytics with charts
-✅ **Attendance Tracking** - Track student attendance with detailed analytics
-✅ **Missing Date Alerts** - Shows which dates are missing CSV uploads
-✅ **Session Management** - Online/Offline/Hybrid batch types
-✅ **Neon Database** - PostgreSQL backend with real-time syncing
-✅ **Netlify Ready** - Deploy directly to Netlify
+### 🔐 Authentication System
+- **Instructor Signup/Login** - Register with email, password, and name
+- **CEO Master Account** - Special hardcoded credentials for global access
+- **Session Management** - Secure localStorage-based sessions
+- **Password Validation** - Min 6 characters with email uniqueness checks
+- **Role-Based Access** - 'master' (CEO) vs 'instructor' roles
 
-## Tech Stack
+### 📤 Intelligent File Upload
+- **Multiple Formats** - CSV and Excel file support (.csv, .xlsx, .xls)
+- **Smart Duplicate Detection** - Prevents re-uploading of same file
+- **Format Auto-Detection** - Flexible column header recognition
+- **Automatic Deduplication** - Uses UNIQUE constraints on (batch_id, student_name, session_date, join_time)
+- **Comprehensive Validation** - Detects format issues with detailed error messages
+- **Upload Summary** - Shows records processed, inserted, and skipped
 
-- **Frontend**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS v4 + custom design tokens
-- **Animations**: Framer Motion
-- **Charts**: Recharts
-- **Icons**: Lucide React
-- **Database**: Neon Postgres (PostgreSQL)
-- **Auth**: Neon Auth + Google OAuth
-- **CSV Parsing**: Native JavaScript with regex
-- **Hosting**: Netlify
+### 📊 Dynamic Real-Time Analytics
+- **Live Student Count** - Database-driven unique student count per instructor
+- **Session Tracking** - Dynamic count of distinct session dates
+- **Attendance Metrics** - Real-time average attendance percentage
+- **Duplicate Handling** - Smart filtering to prevent duplicate records
+- **Automatic Weekend Filtering** - Excludes Saturday/Sunday automatically
+- **Multi-Instructor Support** - CEO views aggregated data, instructors see only their batches
 
-## Setup Instructions
+### 🎯 Batch Management
+- **Comprehensive Form** - Batch name, description, mode, start date, end date, session time
+- **Flexible Modes** - Online, Offline, or Hybrid delivery
+- **Date Range Validation** - Ensures end date > start date
+- **Custom Session Times** - Specify when daily sessions occur
+- **Batch Details Tracking** - Complete metadata for reporting
 
-### Prerequisites
+### 📈 Beautiful Dashboards
+- **Student Leaderboards** - Top attendees ranked by attendance %
+- **Daily Trends** - 20-day rolling attendance chart
+- **Duration Analytics** - Pie chart showing Full/Partial/Brief sessions
+- **Missing Dates Alert** - Identifies dates with no CSV data
+- **Batch Statistics** - Performance metrics per batch
+- **Real-time Refresh** - Updates as new data is added
 
-- Node.js 18+
-- npm or yarn
-- A Neon project (https://neon.tech)
-- Google OAuth credentials
+### 🛡️ Data Integrity
+- **UNIQUE Constraints** - Prevents duplicate attendance records
+- **Transaction Safety** - Bulk operations with rollback on error
+- **Raw Name Preservation** - Stores original student names
+- **Normalized Names** - 20+ name normalization rules for accuracy
+- **Session Timestamps** - Full join/leave/duration tracking
 
-### Installation
+## 🏗️ Technical Architecture
 
-1. **Clone & Install**
-```bash
-cd ProAzure-Internship-2026
-npm install
-```
+### Technology Stack
 
-2. **Configure Environment**
-
-Create `.env.local`:
-```
-VITE_DATABASE_URL=postgresql://neondb_owner:npg_...@ep-....neondb.tech/neondb?sslmode=require&channel_binding=require
-VITE_NEON_AUTH_URL=https://ep-....neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
-```
-
-3. **Initialize Database**
-
-```bash
-npm run init-db
-```
-
-4. **Start Development Server**
-
-```bash
-npm run dev
-```
-
-Open http://localhost:5173
-
-## Project Structure
-
-```
-src/
-├── components/ui/          # Reusable UI components
-├── pages/                  # Page components
-│   ├── Landing.tsx         # Marketing landing page
-│   ├── AuthPage.tsx        # Authentication page
-│   ├── DashboardLayout.tsx # Dashboard sidebar + layout
-│   └── dashboard/          # Dashboard pages
-├── lib/
-│   ├── db.ts              # Neon database helpers
-│   ├── auth.ts            # Authentication utilities
-│   ├── csvParser.ts       # Zoom CSV parser
-│   └── utils.ts           # Shared utilities
-├── App.tsx                # Main router
-└── index.css              # Global styles & design tokens
-```
-
-## Key Features Explained
-
-### CSV Upload & Parsing
-
-The platform accepts Zoom meeting reports in CSV format:
-- Automatically detects column headers
-- Normalizes student names (handles device names, typos)
-- Filters weekends (Saturday/Sunday)
-- Skips host entries
-- Deduplicates entries
-- Extracts join/leave times and duration
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| **Frontend** | React | 18.2 |
+| **Language** | TypeScript | 5.3 |
+| **Build Tool** | Vite | 5.0.8 |
+| **Styling** | Tailwind CSS | 4.0 |
+| **UI Animation** | Framer Motion | 10.16.4 |
+| **Charts** | Recharts | 2.10.3 |
+| **Icons** | Lucide React | 0.292 |
+| **Database** | PostgreSQL (Neon) | Latest |
+| **SDK** | @neondatabase/serverless | 0.9.0 |
+| **Deployment** | Netlify | - |
 
 ### Database Schema
 
-- **instructors** - Instructor accounts with Google Auth
-- **batches** - Internship batches (name, mode, dates, timing)
-- **attendance** - Student attendance records with timestamps
-- **sessions** - Tracked session dates
-- **csv_uploads** - Upload history and metadata
+```sql
+-- Instructors
+CREATE TABLE instructors (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT CHECK (role IN ('master', 'instructor')) NOT NULL,
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-### Analytics & Dashboard
+-- Batches
+CREATE TABLE batches (
+  id TEXT PRIMARY KEY,
+  instructor_id TEXT REFERENCES instructors(id),
+  name TEXT NOT NULL,
+  description TEXT,
+  mode TEXT CHECK (mode IN ('online', 'offline', 'hybrid')),
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  session_time TIME,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-The dashboard shows:
-- Total students and sessions
-- Average attendance %
-- Daily attendance trends
-- Student leaderboards
-- Duration split (Full/Partial/Brief sessions)
-- Missing CSV dates for the internship
-- Top attendees ranking
-- Batch management overview
+-- Attendance
+CREATE TABLE attendance (
+  id TEXT PRIMARY KEY,
+  batch_id TEXT REFERENCES batches(id),
+  student_name TEXT NOT NULL,
+  session_date DATE NOT NULL,
+  join_time TIME NOT NULL,
+  leave_time TIME,
+  duration_min INT,
+  session_start TIME,
+  raw_name TEXT,
+  UNIQUE(batch_id, student_name, session_date, join_time)
+);
 
-## Internship Configuration
+-- Sessions
+CREATE TABLE sessions (
+  id TEXT PRIMARY KEY,
+  batch_id TEXT REFERENCES batches(id),
+  session_date DATE NOT NULL,
+  topic TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(batch_id, session_date)
+);
 
-**Program**: Web Internship 2026
-**Duration**: June 1, 2026 - August 30, 2026
-**Weekdays**: Mon-Fri (Sat/Sun excluded)
-**Company**: ProAzure Software Solutions Private Limited
+-- CSV Uploads
+CREATE TABLE csv_uploads (
+  id TEXT PRIMARY KEY,
+  batch_id TEXT REFERENCES batches(id),
+  filename TEXT NOT NULL,
+  date_range_start DATE,
+  date_range_end DATE,
+  records_added INT,
+  uploaded_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-## Deployment to Netlify
+### Project Structure
 
-1. **Build**
+```
+src/
+├── components/
+│   └── ui/
+│       └── index.tsx          # Button, Input, Card, Badge, etc.
+├── pages/
+│   ├── Landing.tsx            # Marketing landing page
+│   ├── AuthPage.tsx           # Sign in/Sign up forms
+│   ├── AuthCallback.tsx       # OAuth redirect handler
+│   ├── DashboardLayout.tsx    # Dashboard shell
+│   └── dashboard/
+│       ├── Overview.tsx       # Main analytics dashboard
+│       ├── Batches.tsx        # Batch list view
+│       ├── CreateBatch.tsx    # Batch creation form
+│       ├── BatchDetail.tsx    # Batch details page
+│       ├── UploadCSV.tsx      # File upload interface
+│       ├── Students.tsx       # Student leaderboard
+│       ├── Calendar.tsx       # Session calendar
+│       └── Settings.tsx       # Instructor settings
+├── lib/
+│   ├── db.ts                  # Database functions (multi-tenant)
+│   ├── auth.ts                # Authentication logic
+│   ├── csvParser.ts           # CSV parsing engine
+│   └── utils.ts               # Shared utilities
+├── App.tsx                    # Router configuration
+└── index.css                  # Tailwind + design tokens
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** 18+ with npm
+- **Neon Account** - Free PostgreSQL hosting (https://neon.tech)
+- **Git** - For version control
+
+### Installation Steps
+
+#### 1. Clone Repository
+```bash
+git clone https://github.com/SAI-RANDIVE/ProAzure-Internship2026
+cd ProAzure-Internship-2026
+```
+
+#### 2. Install Dependencies
+```bash
+npm install
+```
+
+#### 3. Environment Setup
+
+Create `.env.local` with your Neon credentials:
+```env
+VITE_DATABASE_URL=postgresql://neondb_owner:PASSWORD@ENDPOINT/neondb?sslmode=require&channel_binding=require
+VITE_NEON_AUTH_URL=https://ENDPOINT.neonauth.REGION.aws.neon.tech/neondb/auth
+```
+
+Get these from your Neon dashboard:
+- Go to https://console.neon.tech
+- Select your project
+- Copy the connection string
+- Extract credentials and build the URL
+
+#### 4. Verify Database Connection
+```bash
+npm run dev
+# Visit http://localhost:5173
+# Check browser console for "Schema statement executed" messages
+# This indicates successful database initialization
+```
+
+#### 5. First Login
+- **CEO Account**: `bapurajearkas@proazuresoft.com` / `bapuraje123`
+- **New Instructor**: Click "Sign Up" and register with any email
+
+### Running the Application
+
+#### Development Mode
+```bash
+npm run dev
+# Open http://localhost:5173
+# Hot Module Reload (HMR) enabled
+# Access all features locally
+```
+
+#### Build for Production
 ```bash
 npm run build
+# Creates optimized dist/ directory
+# Run `npm run preview` to test production build locally
 ```
+
+#### Type Checking
+```bash
+npm run tsc-check
+# Ensures TypeScript compilation succeeds
+# Required before pushing to Netlify
+```
+
+## 📖 Usage Guide
+
+### For Instructors
+
+#### 1. Create a Batch
+- Navigate to Dashboard → Batches
+- Click "Create Batch"
+- Fill in:
+  - **Batch Name**: Descriptive name (e.g., "Web Dev Cohort A")
+  - **Description**: Topics and objectives
+  - **Mode**: Online/Offline/Hybrid
+  - **Start Date**: First day of training
+  - **End Date**: Last day of training
+  - **Session Time**: When sessions begin
+- Click "Create Batch"
+
+#### 2. Upload Attendance
+- Navigate to Dashboard → Upload CSV
+- **Get Batch ID**: Copy from batches list or URL
+- **Download Zoom Report**: 
+  1. Open Zoom meeting recording
+  2. Click "View Participants Report"
+  3. Download CSV file
+- **Upload File**:
+  1. Paste Batch ID
+  2. Select CSV/Excel file
+  3. Click "Upload & Process"
+- **Review Results**: Confirm inserted records
+
+#### 3. Monitor Attendance
+- Dashboard shows **real-time statistics**
+- **Student Leaderboard** displays top attendees
+- **Daily Trends** chart shows attendance patterns
+- **Missing Dates Alert** highlights gaps in data
+- All numbers update automatically as data is added
+
+### For CEO
+
+#### 1. Global Access
+- Login with CEO credentials
+- Access **Instructor Selector** in top-right
+- Switch between instructors to see their data
+- View **aggregated statistics** across all batches
+
+#### 2. Monitor All Batches
+- See all student attendance across all instructors
+- Verify data quality and completeness
+- Check for any anomalies or gaps
+
+## 🔍 Smart Features Explained
+
+### Intelligent Duplicate Detection
+
+**How it works:**
+```
+1. Check UNIQUE(batch_id, student_name, session_date, join_time)
+2. If file uploaded twice → Second upload skipped with message
+3. If same student on same day at same time → Deduplicated
+4. Result: No data corruption, always accurate counts
+```
+
+**Benefits:**
+- Upload same file multiple times → No duplicates
+- Merge multiple CSVs → No accidental duplicates
+- Corrected records → Easy to update and replace
+
+### Dynamic Count Functions
+
+**getTotalStudentCount(instructorId)**
+```sql
+SELECT COUNT(DISTINCT student_name) FROM attendance
+WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ?)
+```
+- Real-time unique student count
+- Updates immediately when CSV uploaded
+- Filtered by instructor for multi-tenant accuracy
+
+**getTotalSessionCount(instructorId)**
+```sql
+SELECT COUNT(DISTINCT session_date) FROM sessions
+WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ?)
+```
+- Dynamic session date count
+- Excludes weekends automatically
+- Tracks only actual session days
+
+### Smart CSV Parser
+
+**Column Detection:**
+```javascript
+- Looks for "name" OR "participant" columns
+- Finds "join" OR "entry" time columns
+- Detects "duration" OR "time" columns
+- Flexible to different CSV formats
+```
+
+**Name Normalization:**
+- Removes device names (iPhone, Samsung, etc.)
+- Handles typos with mapping rules
+- Standardizes formatting
+- 20+ predefined mappings
+
+**Data Filtering:**
+- Skips weekends (Sat/Sun)
+- Removes host entries
+- Removes unrecognized devices
+- Validates join times
+
+## 🔒 Security & Best Practices
+
+### Authentication
+- CEO: Hardcoded credentials (special admin account)
+- Instructors: Email + password (localStorage, dev-only)
+- Production: Should use bcrypt + backend validation
+- Sessions: Stored in localStorage with timestamps
+
+### Database
+- PostgreSQL with Neon (enterprise-grade)
+- UNIQUE constraints prevent duplicates
+- Foreign keys maintain referential integrity
+- No sensitive data in URLs
+
+### Data Validation
+- CSV format validation before processing
+- Email uniqueness checks
+- Date range validation (end > start)
+- Batch ID verification before upload
+
+### Recommendations for Production
+1. Implement bcrypt password hashing
+2. Use proper OAuth (Google, GitHub, etc.)
+3. Add session expiration
+4. Enable HTTPS only
+5. Implement rate limiting
+6. Add audit logging
+7. Regular database backups
+
+## 🐛 Troubleshooting
+
+### "Invalid Zoom CSV format" Error
+**Cause**: CSV columns not recognized
+**Solution**: 
+1. Verify CSV from Zoom (not Excel export)
+2. Check column headers match expected names
+3. Try uploading a sample from meeting recording
+
+### Database Connection Failed
+**Cause**: .env variables incorrect
+**Solution**:
+1. Verify VITE_DATABASE_URL in .env.local
+2. Check credentials in Neon console
+3. Ensure sslmode=require in connection string
+4. Try connection in psql command line
+
+### Build Fails with TypeScript Error
+**Cause**: Type mismatches in code
+**Solution**:
+1. Run `npm run tsc-check` to see errors
+2. Check error messages for specific files
+3. Verify all imports are correct
+4. Ensure types match function signatures
+
+### Netlify Deploy Fails
+**Cause**: Environment variables not set
+**Solution**:
+1. Go to Netlify dashboard
+2. Settings → Environment variables
+3. Add VITE_DATABASE_URL and VITE_NEON_AUTH_URL
+4. Redeploy
+
+## 📊 Analytics & Reporting
+
+### Dashboard Metrics
+
+**Calculated Real-Time:**
+- Total Students: COUNT(DISTINCT student_name)
+- Total Sessions: COUNT(DISTINCT session_date)
+- Average Attendance: AVG(presence_flag)
+- Top Attendees: Student ranking by attendance %
+
+**Time-Based:**
+- Daily trends over last 20 days
+- Session distribution (Full/Partial/Brief)
+- Missing dates in batch period
+- Attendance by batch
+
+### Export & Integration
+- CSV data available for download
+- API-ready JSON responses
+- Compatible with BI tools
+- Audit trail via csv_uploads table
+
+## 🚀 Deployment
+
+### Deploy to Netlify
+
+#### Option 1: Via GitHub (Recommended)
+1. Push code to GitHub
+2. Connect GitHub repo to Netlify
+3. Set environment variables in Netlify UI
+4. Auto-rebuilds on every push
+
+#### Option 2: Manual Deploy
+```bash
+npm run build
+# Drag dist/ folder to Netlify
+```
+
+### Environment Variables (Netlify)
+```
+VITE_DATABASE_URL = [Your Neon URL]
+VITE_NEON_AUTH_URL = [Your Neon Auth URL]
+```
+
+### Production Checklist
+- [ ] TypeScript compiles without errors
+- [ ] Environment variables set in Netlify
+- [ ] Database connection tested
+- [ ] CEO account credentials changed
+- [ ] HTTPS enforced
+- [ ] Error monitoring configured (Sentry)
+- [ ] Analytics enabled (Mixpanel)
+
+## 📝 Internship Configuration
+
+**Program Details:**
+- **Duration**: June 1, 2026 - August 30, 2026
+- **Weekdays**: Monday - Friday (Weekends excluded)
+- **Company**: ProAzure Software Solutions Private Limited
+- **Program**: Full-Stack Web Development Internship
+
+**Customization:**
+To adjust internship dates:
+1. Edit expected date range in `csvParser.ts`
+2. Update default dates in batch creation form
+3. Modify in database initialization
+
+## 🤝 Support & Contribution
+
+### Reporting Issues
+1. Check the Troubleshooting section above
+2. Review browser console for errors
+3. Check database connection logs
+4. Create GitHub issue with error details
+
+### Feature Requests
+- Open GitHub issue with description
+- Include use case and expected behavior
+- Attach any relevant screenshots
+
+## 📄 License
+
+This project is part of the ProAzure Internship 2026 program.
+
+## 👨‍💻 Author
+
+**SAI RANDIVE** - Full Stack Developer
+- GitHub: https://github.com/SAI-RANDIVE
+- Project: ProAzure Internship 2026
+
+---
+
+**Last Updated:** June 2026 | **Version:** 1.0.0
+**Status:** ✅ Production Ready
 
 2. **Deploy**
 - Push to GitHub

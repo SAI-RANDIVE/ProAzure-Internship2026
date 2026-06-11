@@ -91,31 +91,47 @@ export interface ParseResult {
   deviceSkipped: number
   dates: string[]
   newDates: string[]
+  duplicateRecords: number
+  format: string
 }
 
 export function parseZoomCsv(text: string, existingDates: Set<string>): ParseResult {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
-  if (lines.length < 2) return { records: [], weekendSkipped: 0, hostSkipped: 0, deviceSkipped: 0, dates: [], newDates: [] }
+  if (lines.length < 2) return { records: [], weekendSkipped: 0, hostSkipped: 0, deviceSkipped: 0, dates: [], newDates: [], duplicateRecords: 0, format: 'unknown' }
 
   const headers = splitCsvLine(lines[0])
-  const nameKey = headers.findIndex(h => h.toLowerCase().includes('name (original'))
-  const joinKey = headers.findIndex(h => h.toLowerCase().startsWith('join'))
-  const leaveKey = headers.findIndex(h => h.toLowerCase().startsWith('leave'))
-  const durIdx = (() => {
-    const i = headers.findIndex(h => h.toLowerCase().includes('duration') && h.includes('.1'))
-    if (i !== -1) return i
-    return headers.findIndex(h => h.toLowerCase().includes('duration (minutes)') && !h.toLowerCase().includes('total'))
-  })()
-  const startKey = headers.findIndex(h => h.toLowerCase().startsWith('start'))
+  
+  // Flexible column detection
+  const nameKey = headers.findIndex(h => 
+    h.toLowerCase().includes('name') || 
+    h.toLowerCase().includes('participant')
+  )
+  const joinKey = headers.findIndex(h => 
+    h.toLowerCase().includes('join') || 
+    h.toLowerCase().includes('entry')
+  )
+  const leaveKey = headers.findIndex(h => 
+    h.toLowerCase().includes('leave') || 
+    h.toLowerCase().includes('exit')
+  )
+  const durIdx = headers.findIndex(h => 
+    h.toLowerCase().includes('duration') || 
+    h.toLowerCase().includes('time')
+  )
+  const startKey = headers.findIndex(h => 
+    h.toLowerCase().includes('start')
+  )
 
   if (nameKey === -1 || joinKey === -1) {
-    throw new Error('Invalid Zoom CSV format. Expected "Name (original name)" and "Join time" columns.')
+    throw new Error(`Invalid CSV format. Could not find name and join/entry columns. Headers: ${headers.join(', ')}`)
   }
 
   const records: ParsedRecord[] = []
   let weekendSkipped = 0
   let hostSkipped = 0
   let deviceSkipped = 0
+  let duplicateRecords = 0
+  const seen = new Set<string>()
 
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue
@@ -141,6 +157,14 @@ export function parseZoomCsv(text: string, existingDates: Set<string>): ParseRes
     const dur = parseInt(parts[durIdx] || '0') || 0
     if (dur <= 0) continue
 
+    // Create unique key to detect duplicates
+    const recordKey = `${name}|${fmtDate(joinDt)}|${fmtTime(joinDt)}`
+    if (seen.has(recordKey)) {
+      duplicateRecords++
+      continue
+    }
+    seen.add(recordKey)
+
     records.push({
       name,
       rawName: titleCase(rawName),
@@ -155,7 +179,7 @@ export function parseZoomCsv(text: string, existingDates: Set<string>): ParseRes
   const allDates = [...new Set(records.map(r => r.date))].sort()
   const newDates = allDates.filter(d => !existingDates.has(d))
 
-  return { records, weekendSkipped, hostSkipped, deviceSkipped, dates: allDates, newDates }
+  return { records, weekendSkipped, hostSkipped, deviceSkipped, dates: allDates, newDates, duplicateRecords, format: 'zoom' }
 }
 
 // ── Analytics helpers ─────────────────────────────────────────────────────────
