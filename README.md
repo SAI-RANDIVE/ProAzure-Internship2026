@@ -9,7 +9,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue?style=flat-square&logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-teal?style=flat-square&logo=tailwindcss)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791?style=flat-square&logo=postgresql)
-![Vite](https://img.shields.io/badge/Vite-5.0-yellow?style=flat-square&logo=vite)
+![Vite](https://img.shields.io/badge/Vite-6.4-yellow?style=flat-square&logo=vite)
 
 </div>
 
@@ -31,12 +31,13 @@ ProAzure Internship 2026 is a **production-ready, SaaS platform** for managing s
 - **Role-Based Access** - 'master' (CEO) vs 'instructor' roles
 
 ### 📤 Intelligent File Upload
-- **Multiple Formats** - CSV and Excel file support (.csv, .xlsx, .xls)
-- **Smart Duplicate Detection** - Prevents re-uploading of same file
-- **Format Auto-Detection** - Flexible column header recognition
-- **Automatic Deduplication** - Uses UNIQUE constraints on (batch_id, student_name, session_date, join_time)
+- **Multiple Formats** - CSV and Excel support (.csv, .xlsx, plus text-like .xls exports)
+- **Source Selection** - Choose Zoom, Google Meet, or Zoom + Meet per upload
+- **Smart Duplicate Detection** - Prevents re-uploading of the same source records
+- **Format Auto-Detection** - Flexible Zoom columns and Google Meet extension name-list recognition
+- **Automatic Deduplication** - Uses UNIQUE constraints on (batch_id, student_name, session_date, join_time, source_type)
 - **Comprehensive Validation** - Detects format issues with detailed error messages
-- **Upload Summary** - Shows records processed, inserted, and skipped
+- **Upload Summary** - Shows records processed, inserted, skipped, and detected format
 
 ### 📊 Dynamic Real-Time Analytics
 - **Live Student Count** - Database-driven unique student count per instructor
@@ -76,7 +77,7 @@ ProAzure Internship 2026 is a **production-ready, SaaS platform** for managing s
 |-------|-----------|---------|
 | **Frontend** | React | 18.2 |
 | **Language** | TypeScript | 5.3 |
-| **Build Tool** | Vite | 5.0.8 |
+| **Build Tool** | Vite | 6.4.2 |
 | **Styling** | Tailwind CSS | 4.0 |
 | **UI Animation** | Framer Motion | 10.16.4 |
 | **Charts** | Recharts | 2.10.3 |
@@ -140,6 +141,7 @@ CREATE TABLE csv_uploads (
   id TEXT PRIMARY KEY,
   batch_id TEXT REFERENCES batches(id),
   filename TEXT NOT NULL,
+  source_type TEXT DEFAULT 'zoom',
   date_range_start DATE,
   date_range_end DATE,
   records_added INT,
@@ -266,16 +268,16 @@ npm run tsc-check
 
 #### 2. Upload Attendance
 - Navigate to Dashboard → Upload CSV
-- **Get Batch ID**: Copy from batches list or URL
-- **Download Zoom Report**: 
-  1. Open Zoom meeting recording
-  2. Click "View Participants Report"
-  3. Download CSV file
+- **Get Batch ID**: Copy from batches list or paste the batch URL
+- **Choose Source**:
+  1. Zoom for Zoom participant reports
+  2. Google Meet for Chrome-extension attendance exports
+  3. Zoom + Meet when the batch may use either platform
 - **Upload File**:
-  1. Paste Batch ID
-  2. Select CSV/Excel file
+  1. Select .csv or .xlsx; text-like .xls exports are accepted, but legacy binary .xls should be saved as .xlsx or .csv
+  2. For Google Meet name-list exports, enter the session duration
   3. Click "Upload & Process"
-- **Review Results**: Confirm inserted records
+- **Review Results**: Confirm inserted records, skipped records, source, and detected format
 
 #### 3. Monitor Attendance
 - Dashboard shows **real-time statistics**
@@ -303,15 +305,17 @@ npm run tsc-check
 
 **How it works:**
 ```
-1. Check UNIQUE(batch_id, student_name, session_date, join_time)
+1. Check UNIQUE(batch_id, student_name, session_date, join_time, source_type)
 2. If file uploaded twice → Second upload skipped with message
-3. If same student on same day at same time → Deduplicated
-4. Result: No data corruption, always accurate counts
+3. If same student on same day at same time from the same source → Deduplicated
+4. If Zoom and Meet both provide attendance evidence → Both sources can be retained
+5. Result: No data corruption, always accurate counts
 ```
 
 **Benefits:**
 - Upload same file multiple times → No duplicates
-- Merge multiple CSVs → No accidental duplicates
+- Merge multiple CSV/Excel files → No accidental duplicates
+- Mix Zoom and Google Meet files → Source-aware attendance history
 - Corrected records → Easy to update and replace
 
 ### Dynamic Count Functions
@@ -334,14 +338,14 @@ WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ?)
 - Excludes weekends automatically
 - Tracks only actual session days
 
-### Smart CSV Parser
+### Smart Attendance Parser
 
 **Column Detection:**
 ```javascript
-- Looks for "name" OR "participant" columns
-- Finds "join" OR "entry" time columns
-- Detects "duration" OR "time" columns
-- Flexible to different CSV formats
+- Zoom: finds participant name, join time, leave time, duration, and meeting start columns
+- Google Meet: reads extension metadata and the "Full Name" attendance list
+- Excel: converts .xlsx rows into the same parser pipeline
+- Flexible to different CSV/Excel formats without seeding sample data
 ```
 
 **Name Normalization:**
@@ -371,7 +375,9 @@ WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ?)
 - No sensitive data in URLs
 
 ### Data Validation
-- CSV format validation before processing
+- CSV/Excel format validation before processing
+- Upload source validation for Zoom, Google Meet, and Zoom + Meet
+- File size, empty file, and unsupported legacy .xls checks
 - Email uniqueness checks
 - Date range validation (end > start)
 - Batch ID verification before upload
@@ -387,12 +393,13 @@ WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ?)
 
 ## 🐛 Troubleshooting
 
-### "Invalid Zoom CSV format" Error
-**Cause**: CSV columns not recognized
+### "Invalid Attendance CSV Format" Error
+**Cause**: File source and detected columns do not match
 **Solution**: 
-1. Verify CSV from Zoom (not Excel export)
-2. Check column headers match expected names
-3. Try uploading a sample from meeting recording
+1. Choose the correct source: Zoom, Google Meet, or Zoom + Meet
+2. For Zoom, verify participant report columns include name, join time, leave time, and duration
+3. For Google Meet, verify the extension CSV includes meeting metadata and "Full Name"
+4. For Excel, prefer .xlsx; save old binary .xls files as .xlsx or .csv
 
 ### Database Connection Failed
 **Cause**: .env variables incorrect
@@ -556,18 +563,30 @@ CREATE TABLE attendance (
   join_time TEXT,
   leave_time TEXT,
   duration_min INT,
-  UNIQUE(batch_id, student_name, session_date, join_time)
+  source_type TEXT,
+  UNIQUE(batch_id, student_name, session_date, join_time, source_type)
 );
 ```
 
-## CSV Format Expected
+## Attendance File Formats
 
-The app expects Zoom "Meeting Participants" report with these columns:
+The app supports Zoom "Meeting Participants" reports with these columns:
 - Name (original name)
 - Join time
 - Leave time
 - Duration (minutes) - with `.1` in the column name
 - Start time
+
+It also supports Google Meet Chrome-extension exports shaped like:
+- Meeting title/code metadata
+- Created on timestamp
+- Ended on timestamp
+- Full Name list
+
+Excel support:
+- .xlsx files are read directly from the first non-empty worksheet
+- Text-like .xls exports are treated as delimited text
+- Legacy binary .xls files should be saved as .xlsx or .csv before upload
 
 Example processing:
 ```
@@ -599,10 +618,11 @@ dur: 1
 - Check database URL format
 - Ensure IP whitelist includes your machine
 
-### CSV Upload Fails
-- Verify CSV is from Zoom "Meeting Participants" report
-- Check column headers are exactly as expected
-- Ensure UTF-8 encoding
+### Attendance Upload Fails
+- Verify the selected source matches the file
+- Check Zoom participant columns or Google Meet "Full Name" export shape
+- Ensure CSV files are UTF-8 encoded
+- Save legacy binary .xls files as .xlsx or .csv
 
 ### Authentication Issues
 - Clear browser cache and cookies

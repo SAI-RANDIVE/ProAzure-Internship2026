@@ -60,81 +60,81 @@ export default function CreateBatch() {
   return (
     <div className="max-w-3xl mx-auto">
       <Card>
-        <h1 className="text-2xl font-semibold mb-2 text-white">Create New Batch</h1>
-        <p className="text-sm text-white/60 mb-6">Set up a new training batch with comprehensive details</p>
+        <h1 className="text-2xl font-semibold mb-2 text-foreground">Create New Batch</h1>
+        <p className="text-sm text-muted-foreground mb-6">Set up a new training batch with comprehensive details</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Batch Name */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Batch Name *</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Batch Name *</label>
             <input
               type="text"
               placeholder="e.g., ProAzure Full-Stack Internship 2026"
               required
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Description</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Description</label>
             <textarea
               placeholder="Describe the batch, topics covered, etc."
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
               rows={3}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent resize-none"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent resize-none"
             />
           </div>
 
           {/* Mode Selection */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Mode *</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Mode *</label>
             <select
               value={formData.mode}
               onChange={(e) => setFormData({...formData, mode: e.target.value as 'online' | 'offline' | 'hybrid'})}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
             >
-              <option value="online" className="bg-[#0d1117] text-white">Online</option>
-              <option value="offline" className="bg-[#0d1117] text-white">Offline</option>
-              <option value="hybrid" className="bg-[#0d1117] text-white">Hybrid</option>
+              <option value="online" className="bg-white text-foreground">Online</option>
+              <option value="offline" className="bg-white text-foreground">Offline</option>
+              <option value="hybrid" className="bg-white text-foreground">Hybrid</option>
             </select>
           </div>
 
           {/* Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Start Date *</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Start Date *</label>
               <input
                 type="date"
                 value={formData.start_date}
                 onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white mb-2">End Date *</label>
+              <label className="block text-sm font-medium text-foreground mb-2">End Date *</label>
               <input
                 type="date"
                 value={formData.end_date}
                 onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
               />
             </div>
           </div>
 
           {/* Session Time */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">Session Time *</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Session Time *</label>
             <input
               type="time"
               value={formData.session_time}
               onChange={(e) => setFormData({...formData, session_time: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
             />
-            <p className="text-xs text-white/50 mt-1">Time when sessions typically occur</p>
+            <p className="text-xs text-muted-foreground mt-1">Time when sessions typically occur</p>
           </div>
 
           {/* Error Message */}
@@ -149,7 +149,7 @@ export default function CreateBatch() {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-end pt-4 border-t border-white/10">
+          <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
             <Button 
               type="button"
               variant="ghost" 
@@ -171,13 +171,13 @@ export default function CreateBatch() {
 
       {/* Information */}
       <Card className="mt-6">
-        <h3 className="text-sm font-semibold text-white mb-3">📝 Batch Guidelines</h3>
-        <ul className="text-xs text-white/60 space-y-2">
-          <li><span className="text-white/80">•</span> Give your batch a descriptive name for easy identification</li>
-          <li><span className="text-white/80">•</span> Set accurate start and end dates covering your training period</li>
-          <li><span className="text-white/80">•</span> Choose the session delivery mode (Online/Offline/Hybrid)</li>
-          <li><span className="text-white/80">•</span> Set the time when daily sessions typically begin</li>
-          <li><span className="text-white/80">•</span> You can upload attendance files after creating the batch</li>
+        <h3 className="text-sm font-semibold text-foreground mb-3">📝 Batch Guidelines</h3>
+        <ul className="text-xs text-muted-foreground space-y-2">
+          <li><span className="text-foreground/80">•</span> Give your batch a descriptive name for easy identification</li>
+          <li><span className="text-foreground/80">•</span> Set accurate start and end dates covering your training period</li>
+          <li><span className="text-foreground/80">•</span> Choose the session delivery mode (Online/Offline/Hybrid)</li>
+          <li><span className="text-foreground/80">•</span> Set the time when daily sessions typically begin</li>
+          <li><span className="text-foreground/80">•</span> You can upload attendance files after creating the batch</li>
         </ul>
       </Card>
     </div>
