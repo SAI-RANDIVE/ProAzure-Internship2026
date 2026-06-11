@@ -140,7 +140,9 @@ export async function initSchema() {
     .filter(s => s.length > 0)
   for (const stmt of statements) {
     try {
-      await sql`${sql.unsafe(stmt)}`
+      // Use raw template string for DDL statements
+      const result = await (sql as any)(stmt)
+      console.log('Schema statement executed')
     } catch (e) {
       console.error('Schema init error:', e)
     }
@@ -161,13 +163,13 @@ export async function upsertInstructor(data: Pick<Instructor,'id'|'email'|'name'
 
 export async function getInstructor(id: string): Promise<Instructor | null> {
   const sql = getDb()
-  const rows = await sql`SELECT * FROM instructors WHERE id = ${id}`
-  return (rows[0] as Instructor) ?? null
+  const rows = (await sql`SELECT * FROM instructors WHERE id = ${id}`) as Instructor[]
+  return rows[0] ?? null
 }
 
 export async function getInstructors(): Promise<Instructor[]> {
   const sql = getDb()
-  const rows = await sql`
+  const rows = (await sql`
     SELECT * FROM instructors WHERE role = 'instructor' ORDER BY name ASC
   `
   return rows as Instructor[]
@@ -289,8 +291,8 @@ export async function getCsvUploads(batchId: string): Promise<CsvUpload[]> {
 
 export async function getExistingAttendanceDates(batchId: string): Promise<Set<string>> {
   const sql = getDb()
-  const rows = await sql`
+  const rows = (await sql`
     SELECT DISTINCT session_date FROM attendance WHERE batch_id = ${batchId}
-  `
+  `) as Array<{ session_date: string }>
   return new Set(rows.map(row => String(row.session_date).slice(0, 10)))
 }

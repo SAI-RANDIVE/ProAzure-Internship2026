@@ -1,4 +1,4 @@
-import { Card, Input } from '@/components/ui'
+import { Card } from '@/components/ui'
 import { useState } from 'react'
 import { Upload } from 'lucide-react'
 import { parseZoomCsv } from '@/lib/csvParser'

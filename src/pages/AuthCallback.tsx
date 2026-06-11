@@ -20,6 +20,7 @@ export default function AuthCallback() {
             id: session.user.id,
             email: session.user.email || '',
             name: session.user.name || session.user.email?.split('@')[0] || 'Instructor',
+            role: 'instructor',
             avatar_url: session.user.image ?? undefined,
           })
           navigate('/dashboard', { replace: true })

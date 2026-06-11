@@ -8,7 +8,7 @@ export default function CreateBatch() {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    mode: 'online' as const,
+    mode: 'online' as 'online' | 'offline' | 'hybrid',
     session_time: '10:00',
   })
 

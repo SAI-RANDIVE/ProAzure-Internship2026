@@ -234,7 +234,7 @@ export default function Overview() {
             </ResponsiveContainer>
           </div>
           <div className="space-y-2 mt-2">
-            {data.durationSplit.map((item, i) => (
+            {data.durationSplit.map((item) => (
               <div key={item.name} className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">{item.name}</span>
                 <span className="font-medium text-foreground">{item.value}</span>
