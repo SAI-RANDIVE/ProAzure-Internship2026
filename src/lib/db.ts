@@ -331,6 +331,24 @@ export async function getTotalSessionCount(instructorId?: string): Promise<numbe
   return rows[0]?.count ?? 0
 }
 
+export async function getWeekdaySessionCount(instructorId?: string): Promise<number> {
+  const sql = getDb()
+  let rows
+  if (instructorId) {
+    rows = (await sql`
+      SELECT COUNT(DISTINCT session_date) as count FROM attendance
+      WHERE batch_id IN (SELECT id FROM batches WHERE instructor_id = ${instructorId})
+      AND EXTRACT(DOW FROM session_date) BETWEEN 1 AND 5
+    `) as Array<{ count: number }>
+  } else {
+    rows = (await sql`
+      SELECT COUNT(DISTINCT session_date) as count FROM attendance
+      WHERE EXTRACT(DOW FROM session_date) BETWEEN 1 AND 5
+    `) as Array<{ count: number }>
+  }
+  return rows[0]?.count ?? 0
+}
+
 export async function getAverageAttendance(instructorId?: string): Promise<number> {
   const sql = getDb()
   let rows

@@ -2,6 +2,8 @@ import { motion } from 'framer-motion'
 import { ArrowRight, Play, Upload, Users, Calendar, Shield, Zap, BarChart3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui'
+import { useState, useEffect } from 'react'
+import { getTotalStudentCount, getWeekdaySessionCount } from '@/lib/db'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -17,14 +19,37 @@ const features = [
   { icon: <Zap className="w-5 h-5" />, title: 'Real-time DB', desc: 'Backed by Neon Postgres. Data persists across sessions and devices.' },
 ]
 
-const stats = [
-  { value: '3 months', label: 'Internship Duration' },
-  { value: '~65', label: 'Weekday Sessions' },
-  { value: '80+', label: 'Students Tracked' },
-  { value: '100%', label: 'Automated' },
-]
-
 export default function Landing() {
+  const [stats, setStats] = useState([
+    { value: '3 months', label: 'Internship Duration' },
+    { value: '...', label: 'Weekday Sessions' },
+    { value: '...', label: 'Students Tracked' },
+    { value: '100%', label: 'Automated' },
+  ])
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [studentCount, weekdaySessions] = await Promise.all([
+          getTotalStudentCount(),
+          getWeekdaySessionCount(),
+        ])
+
+        setStats([
+          { value: '3 months', label: 'Internship Duration' },
+          { value: `~${weekdaySessions}`, label: 'Weekday Sessions' },
+          { value: `${studentCount}+`, label: 'Students Tracked' },
+          { value: '100%', label: 'Automated' },
+        ])
+      } catch (error) {
+        console.error('Error loading stats:', error)
+      }
+    }
+
+    loadStats()
+    const interval = setInterval(loadStats, 5000) // Refresh every 5 seconds for real-time updates
+    return () => clearInterval(interval)
+  }, [])
   return (
     <div className="min-h-screen bg-[#0d1117] text-white font-body overflow-x-hidden">
       {/* ── Navbar ──────────────────────────────────────────────────────────── */}
