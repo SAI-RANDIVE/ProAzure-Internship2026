@@ -14,6 +14,63 @@ export function getDb() {
   return sqlClient
 }
 
+function dateOnly(value: unknown): string {
+  if (!value) return ''
+  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  return String(value).slice(0, 10)
+}
+
+function textValue(value: unknown): string {
+  if (!value) return ''
+  if (value instanceof Date) return value.toISOString()
+  return String(value)
+}
+
+function timeValue(value: unknown): string {
+  if (!value) return ''
+  if (value instanceof Date) {
+    return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`
+  }
+  return String(value).slice(0, 5)
+}
+
+function normalizeBatch(row: Batch): Batch {
+  return {
+    ...row,
+    start_date: dateOnly(row.start_date),
+    end_date: dateOnly(row.end_date),
+    session_time: timeValue(row.session_time),
+    created_at: textValue(row.created_at),
+  }
+}
+
+function normalizeSession(row: Session): Session {
+  return {
+    ...row,
+    session_date: dateOnly(row.session_date),
+    created_at: textValue(row.created_at),
+  }
+}
+
+function normalizeAttendance(row: AttendanceRecord): AttendanceRecord {
+  return {
+    ...row,
+    session_date: dateOnly(row.session_date),
+    join_time: timeValue(row.join_time),
+    leave_time: timeValue(row.leave_time),
+    session_start: timeValue(row.session_start),
+  }
+}
+
+function normalizeCsvUpload(row: CsvUpload): CsvUpload {
+  return {
+    ...row,
+    date_range_start: dateOnly(row.date_range_start),
+    date_range_end: dateOnly(row.date_range_end),
+    uploaded_at: textValue(row.uploaded_at),
+  }
+}
+
 // ── Schema DDL ──────────────────────────────────────────────────────────────
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS instructors (
@@ -189,7 +246,7 @@ export async function getBatches(instructorId: string): Promise<Batch[]> {
   const rows = await sql`
     SELECT * FROM batches WHERE instructor_id = ${instructorId} ORDER BY created_at DESC
   `
-  return rows as Batch[]
+  return (rows as Batch[]).map(normalizeBatch)
 }
 
 export async function getAllBatches(): Promise<Batch[]> {
@@ -197,7 +254,7 @@ export async function getAllBatches(): Promise<Batch[]> {
   const rows = await sql`
     SELECT * FROM batches ORDER BY created_at DESC
   `
-  return rows as Batch[]
+  return (rows as Batch[]).map(normalizeBatch)
 }
 
 export async function createBatch(data: Omit<Batch,'id'|'created_at'>): Promise<Batch> {
@@ -208,7 +265,7 @@ export async function createBatch(data: Omit<Batch,'id'|'created_at'>): Promise<
             ${data.mode}, ${data.start_date}, ${data.end_date}, ${data.session_time ?? null})
     RETURNING *
   `) as Batch[]
-  return rows[0]
+  return normalizeBatch(rows[0])
 }
 
 export async function updateBatch(id: string, data: Partial<Omit<Batch,'id'|'instructor_id'|'created_at'>>): Promise<void> {
@@ -233,7 +290,7 @@ export async function deleteBatch(id: string): Promise<void> {
 export async function getBatch(id: string): Promise<Batch | null> {
   const sql = getDb()
   const rows = (await sql`SELECT * FROM batches WHERE id = ${id}`) as Batch[]
-  return rows[0] ?? null
+  return rows[0] ? normalizeBatch(rows[0]) : null
 }
 
 export async function getAttendanceForBatch(batchId: string): Promise<AttendanceRecord[]> {
@@ -242,7 +299,7 @@ export async function getAttendanceForBatch(batchId: string): Promise<Attendance
     SELECT * FROM attendance WHERE batch_id = ${batchId}
     ORDER BY session_date ASC, student_name ASC
   `
-  return rows as AttendanceRecord[]
+  return (rows as AttendanceRecord[]).map(normalizeAttendance)
 }
 
 export async function getSessionsForBatch(batchId: string): Promise<Session[]> {
@@ -250,7 +307,7 @@ export async function getSessionsForBatch(batchId: string): Promise<Session[]> {
   const rows = await sql`
     SELECT * FROM sessions WHERE batch_id = ${batchId} ORDER BY session_date ASC
   `
-  return rows as Session[]
+  return (rows as Session[]).map(normalizeSession)
 }
 
 export async function bulkInsertAttendance(records: Omit<AttendanceRecord,'id'|'created_at'>[]): Promise<number> {
@@ -295,7 +352,7 @@ export async function getCsvUploads(batchId: string): Promise<CsvUpload[]> {
   const rows = await sql`
     SELECT * FROM csv_uploads WHERE batch_id = ${batchId} ORDER BY uploaded_at DESC
   `
-  return rows as CsvUpload[]
+  return (rows as CsvUpload[]).map(normalizeCsvUpload)
 }
 
 export async function getExistingAttendanceDates(batchId: string): Promise<Set<string>> {
@@ -303,7 +360,7 @@ export async function getExistingAttendanceDates(batchId: string): Promise<Set<s
   const rows = (await sql`
     SELECT DISTINCT session_date FROM attendance WHERE batch_id = ${batchId}
   `) as Array<{ session_date: string }>
-  return new Set(rows.map(row => String(row.session_date).slice(0, 10)))
+  return new Set(rows.map(row => dateOnly(row.session_date)))
 }
 
 // ── Dynamic Analytics (Real-time from Database) ─────────────────────────────

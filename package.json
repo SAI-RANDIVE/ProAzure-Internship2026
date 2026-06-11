@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:reset": "node scripts/reset-database.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
