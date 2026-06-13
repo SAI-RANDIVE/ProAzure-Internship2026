@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, Loader2, Lock } from 'lucide-react'
-import { neonClient, MASTER_ACCOUNT } from '@/lib/auth'
+import { neonClient } from '@/lib/auth'
 import { Button } from '@/components/ui'
 
 export default function AuthPage() {
@@ -35,8 +35,8 @@ export default function AuthPage() {
     try {
       await neonClient.auth.signIn({ email, password })
       navigate('/dashboard', { replace: true })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed.')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Invalid credentials')
     } finally {
       setLoading(false)
     }
@@ -49,8 +49,8 @@ export default function AuthPage() {
     try {
       await neonClient.auth.signUp({ email, password, name })
       navigate('/dashboard', { replace: true })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign up failed.')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Registration failed')
     } finally {
       setLoading(false)
     }
@@ -65,133 +65,68 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-white flex">
-      <div className="hidden lg:flex lg:w-[52%] relative flex-col justify-end px-12 pb-20 overflow-hidden">
-        <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover">
-          <source
-            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260506_081238_406ed0e3-5d83-436e-a512-0bbff7ec5b95.mp4"
-            type="video/mp4"
-          />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="relative max-w-md">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
-              <Eye className="w-5 h-5 text-[#1de9b6]" />
-            </div>
-            <span className="text-2xl font-semibold">
-              <span className="text-[#1de9b6]">Pro</span><span className="text-[#2979ff]">Azure</span>
-            </span>
+    <div className="min-h-screen bg-[#0d1117] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-[#1de9b6]/10 to-transparent pointer-events-none" />
+      
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="flex justify-center mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1de9b6] to-[#2979ff] flex items-center justify-center shadow-[0_0_30px_rgba(29,233,182,0.3)]">
+            <Lock className="w-6 h-6 text-black" />
           </div>
-          <h1 className="text-5xl font-semibold tracking-tight mb-4">Internship attendance command center</h1>
-          <p className="text-white/65 leading-relaxed">
-            Track batches, validate Zoom CSV uploads, and review student attendance from one focused dashboard.
-          </p>
-        </motion.div>
+        </div>
+        <h2 className="text-center text-3xl font-semibold tracking-tight text-white">
+          {mode === 'signin' ? 'Welcome back' : 'Create an account'}
+        </h2>
+        <p className="mt-2 text-center text-sm text-white/50">
+          {mode === 'signin' ? 'Enter your credentials to access your dashboard' : 'Join ProAzure to manage your batches'}
+        </p>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-5 py-12">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-          <div className="mb-8">
-            <p className="text-sm text-[#1de9b6] font-medium mb-2">ProAzure Software Solutions</p>
-            <h2 className="text-3xl font-semibold tracking-tight">
-              {mode === 'signin' ? 'Sign in' : 'Create account'}
-            </h2>
-            <p className="text-sm text-white/45 mt-2">
-              {mode === 'signin' 
-                ? 'Login as instructor or CEO'
-                : 'Register as a new instructor'}
-            </p>
-          </div>
-
-          {/* Mode Toggle */}
-          <div className="flex gap-2 mb-6 p-1 bg-white/5 rounded-lg border border-white/10">
-            <button
-              onClick={() => {
-                setMode('signin')
-                setError(null)
-                setEmail('')
-                setPassword('')
-                setName('')
-              }}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition ${
-                mode === 'signin'
-                  ? 'bg-[#1de9b6] text-black'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => {
-                setMode('signup')
-                setError(null)
-                setEmail('')
-                setPassword('')
-                setName('')
-              }}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition ${
-                mode === 'signup'
-                  ? 'bg-[#1de9b6] text-black'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              Sign Up
-            </button>
-          </div>
-
-          <form onSubmit={mode === 'signin' ? handleSignIn : handleSignUp} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Email</label>
-              <input
-                type="email"
-                placeholder={mode === 'signin' ? 'you@proazure.com' : 'instructor@proazure.com'}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
-              />
-            </div>
-
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-[400px] relative z-10">
+        <div className="bg-[#161b22] border border-white/10 py-8 px-6 shadow-2xl rounded-2xl sm:px-10">
+          <form className="space-y-5" onSubmit={mode === 'signin' ? handleSignIn : handleSignUp}>
+            
             {mode === 'signup' && (
               <div>
-                <label className="block text-sm font-medium text-white mb-2">Full Name</label>
+                <label className="block text-sm font-medium text-white/80 mb-1.5">Full Name</label>
                 <input
-                  type="text"
-                  placeholder="Your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                  type="text" required value={name} onChange={e => setName(e.target.value)}
+                  className="block w-full rounded-xl border border-white/10 bg-[#0d1117] px-4 py-2.5 text-white placeholder-white/20 focus:border-[#1de9b6] focus:ring-1 focus:ring-[#1de9b6] transition-colors"
+                  placeholder="John Doe"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Password</label>
+              <label className="block text-sm font-medium text-white/80 mb-1.5">Email address</label>
+              <input
+                type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                className="block w-full rounded-xl border border-white/10 bg-[#0d1117] px-4 py-2.5 text-white placeholder-white/20 focus:border-[#1de9b6] focus:ring-1 focus:ring-[#1de9b6] transition-colors"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1.5">Password</label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder={mode === 'signin' ? 'Enter password' : 'At least 6 characters'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                  type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)}
+                  className="block w-full rounded-xl border border-white/10 bg-[#0d1117] px-4 py-2.5 pr-10 text-white placeholder-white/20 focus:border-[#1de9b6] focus:ring-1 focus:ring-[#1de9b6] transition-colors"
+                  placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/30 hover:text-white/70"
                 >
-                  {showPassword ? <Eye className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                  <Eye className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
             {error && (
               <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                 className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400"
               >
                 {error}
@@ -214,21 +149,16 @@ export default function AuthPage() {
             </Button>
           </form>
 
-          {mode === 'signin' && (
-            <div className="mt-6 p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-              <p className="text-xs text-blue-300 mb-2 font-medium">CEO Access</p>
-              <p className="text-xs text-white/50">
-                CEO account: <span className="text-white/70 font-mono">{MASTER_ACCOUNT.email}</span>
-              </p>
-            </div>
-          )}
-
-          <p className="text-xs text-white/40 text-center mt-8">
-            {mode === 'signin'
-              ? "Don't have an account? Create one with Sign Up above."
-              : 'Already have an account? Use Sign In above.'}
+          <p className="text-xs text-center text-white/40 mt-6">
+            {mode === 'signin' ? "Don't have an account? " : "Already have an account? "}
+            <button
+              onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null); }}
+              className="text-[#1de9b6] hover:underline font-medium"
+            >
+              {mode === 'signin' ? 'Sign up' : 'Sign in'}
+            </button>
           </p>
-        </motion.div>
+        </div>
       </div>
     </div>
   )

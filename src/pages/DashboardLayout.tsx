@@ -67,7 +67,7 @@ export default function DashboardLayout() {
 
   const handleSignOut = async () => {
     await neonClient.auth.signOut()
-    navigate('/auth', { replace: true })
+    navigate('/', { replace: true })
   }
 
   const handlePasswordReset = async (e: React.FormEvent) => {

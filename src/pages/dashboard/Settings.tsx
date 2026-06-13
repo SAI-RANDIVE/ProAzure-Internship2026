@@ -14,7 +14,7 @@ export default function Settings() {
 
   const handleSignOut = async () => {
     await neonClient.auth.signOut()
-    navigate('/auth', { replace: true })
+    navigate('/', { replace: true })
   }
 
   if (!user) return null
