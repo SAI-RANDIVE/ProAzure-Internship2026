@@ -308,7 +308,7 @@ export default function UploadCSV() {
                 <select
                   value={batchId}
                   onChange={(e) => setBatchId(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
                 >
                   {batches.map(batch => (
                     <option key={batch.id} value={batch.id}>
@@ -378,7 +378,7 @@ export default function UploadCSV() {
                 max={480}
                 value={meetDuration}
                 onChange={(e) => setMeetDuration(Number(e.target.value))}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
               />
               <p className="text-xs text-muted-foreground mt-1">Google Meet extension CSVs usually list names only, so this duration is used for those records.</p>
             </div>
@@ -390,7 +390,7 @@ export default function UploadCSV() {
             <div className="flex items-center justify-center px-6 py-12 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-all">
               <label className="text-center cursor-pointer w-full">
                 <Upload className="w-10 h-10 mx-auto mb-3 text-gray-400" />
-                <p className="text-sm font-medium text-foreground">Drop file here or click to browse</p>
+                <p className="text-sm font-medium text-gray-900">Drop file here or click to browse</p>
                 <p className="text-xs text-muted-foreground mt-1">CSV or Excel (.csv, .xlsx, .xls)</p>
                 <input
                   type="file"
@@ -436,13 +436,13 @@ export default function UploadCSV() {
             >
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle className="w-5 h-5 text-[#1de9b6]" />
-                <p className="font-semibold text-foreground">Upload Summary</p>
+                <p className="font-semibold text-gray-900">Upload Summary</p>
               </div>
               
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="p-3 bg-white rounded border border-gray-200">
                   <p className="text-muted-foreground text-xs">Total Records</p>
-                  <p className="text-foreground font-semibold">{result.records}</p>
+                  <p className="text-gray-900 font-semibold">{result.records}</p>
                 </div>
                 <div className="p-3 bg-white rounded border border-gray-200">
                   <p className="text-muted-foreground text-xs">Inserted</p>
@@ -450,7 +450,7 @@ export default function UploadCSV() {
                 </div>
                 <div className="p-3 bg-white rounded border border-gray-200">
                   <p className="text-muted-foreground text-xs">New Dates</p>
-                  <p className="text-foreground font-semibold">{result.newDates}</p>
+                  <p className="text-gray-900 font-semibold">{result.newDates}</p>
                 </div>
                 <div className="p-3 bg-white rounded border border-gray-200">
                   <p className="text-muted-foreground text-xs">Duplicates Skipped</p>
@@ -466,11 +466,11 @@ export default function UploadCSV() {
                 </div>
                 <div className="p-3 bg-white rounded border border-gray-200">
                   <p className="text-muted-foreground text-xs">Detected Format</p>
-                  <p className="text-foreground font-semibold capitalize">{result.detectedFormat.replace('-', ' ')}</p>
+                  <p className="text-gray-900 font-semibold capitalize">{result.detectedFormat.replace('-', ' ')}</p>
                 </div>
                 <div className="p-3 bg-white rounded border border-gray-200">
                   <p className="text-muted-foreground text-xs">Selected Source</p>
-                  <p className="text-foreground font-semibold capitalize">{result.source.replace('-', ' + ')}</p>
+                  <p className="text-gray-900 font-semibold capitalize">{result.source.replace('-', ' + ')}</p>
                 </div>
               </div>
             </motion.div>

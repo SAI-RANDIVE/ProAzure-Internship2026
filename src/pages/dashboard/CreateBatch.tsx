@@ -73,7 +73,7 @@ export default function CreateBatch() {
               required
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
             />
           </div>
 
@@ -85,7 +85,7 @@ export default function CreateBatch() {
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
               rows={3}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent resize-none"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent resize-none"
             />
           </div>
 
@@ -95,11 +95,11 @@ export default function CreateBatch() {
             <select
               value={formData.mode}
               onChange={(e) => setFormData({...formData, mode: e.target.value as 'online' | 'offline' | 'hybrid'})}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
             >
-              <option value="online" className="bg-white text-foreground">Online</option>
-              <option value="offline" className="bg-white text-foreground">Offline</option>
-              <option value="hybrid" className="bg-white text-foreground">Hybrid</option>
+              <option value="online" className="bg-white text-gray-900">Online</option>
+              <option value="offline" className="bg-white text-gray-900">Offline</option>
+              <option value="hybrid" className="bg-white text-gray-900">Hybrid</option>
             </select>
           </div>
 
@@ -111,7 +111,7 @@ export default function CreateBatch() {
                 type="date"
                 value={formData.start_date}
                 onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
               />
             </div>
             <div>
@@ -120,7 +120,7 @@ export default function CreateBatch() {
                 type="date"
                 value={formData.end_date}
                 onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
               />
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function CreateBatch() {
               type="time"
               value={formData.session_time}
               onChange={(e) => setFormData({...formData, session_time: e.target.value})}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1de9b6] focus:border-transparent"
             />
             <p className="text-xs text-muted-foreground mt-1">Time when sessions typically occur</p>
           </div>
