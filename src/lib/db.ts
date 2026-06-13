@@ -206,9 +206,7 @@ export async function initSchema() {
     .filter(s => s.length > 0)
   for (const stmt of statements) {
     try {
-      // Use raw template string for DDL statements
       await (sql as any)(stmt)
-      console.log('Schema statement executed')
     } catch (e) {
       console.error('Schema init error:', e)
     }
@@ -282,6 +280,7 @@ export async function updateBatch(id: string, data: Partial<Omit<Batch,'id'|'ins
   `
 }
 
+// Fixed: Only ONE deleteBatch function. ON DELETE CASCADE handles the rest safely.
 export async function deleteBatch(id: string): Promise<void> {
   const sql = getDb()
   await sql`DELETE FROM batches WHERE id = ${id}`
