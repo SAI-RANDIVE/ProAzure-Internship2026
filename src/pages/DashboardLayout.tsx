@@ -3,11 +3,12 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Users, Calendar, Upload, Settings,
-  LogOut, Menu, X, BookOpen, Bell, Plus, Shield
+  LogOut, Menu, X, BookOpen, Bell, Plus, Shield, Lock, AlertCircle
 } from 'lucide-react'
 import { neonClient, type AuthUser } from '@/lib/auth'
 import { getInstructors, initSchema, type Instructor } from '@/lib/db'
 import { cn } from '@/lib/utils'
+import { Button, Card } from '@/components/ui'
 
 const navItems = [
   { to: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" />, label: 'Overview' },
@@ -26,6 +27,13 @@ export default function DashboardLayout() {
   const [selectedInstructorId, setSelectedInstructorId] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  
+  // Password Reset State
+  const [newPwd, setNewPwd] = useState('')
+  const [confirmPwd, setConfirmPwd] = useState('')
+  const [pwdErr, setPwdErr] = useState('')
+  const [changingPwd, setChangingPwd] = useState(false)
+
   const isMaster = user?.role === 'master'
   const effectiveInstructorId = isMaster ? selectedInstructorId : user?.id || ''
   const activeInstructor = instructors.find(i => i.id === effectiveInstructorId)
@@ -43,12 +51,8 @@ export default function DashboardLayout() {
           setSelectedInstructorId(list[0]?.id || '')
         } else {
           setInstructors([{
-            id: session.user.id,
-            email: session.user.email,
-            name: session.user.name,
-            role: 'instructor',
-            avatar_url: session.user.image,
-            created_at: new Date().toISOString(),
+            id: session.user.id, email: session.user.email, name: session.user.name,
+            role: 'instructor', avatar_url: session.user.image, created_at: new Date().toISOString(),
           }])
           setSelectedInstructorId(session.user.id)
         }
@@ -66,6 +70,23 @@ export default function DashboardLayout() {
     navigate('/auth', { replace: true })
   }
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwdErr('')
+    if (newPwd.length < 6) return setPwdErr('Password must be at least 6 characters.')
+    if (newPwd !== confirmPwd) return setPwdErr('Passwords do not match.')
+    
+    setChangingPwd(true)
+    try {
+      const updatedUser = await neonClient.auth.updateMasterPassword(newPwd)
+      setUser(updatedUser)
+    } catch (err) {
+      setPwdErr('Failed to update password. Please try again.')
+    } finally {
+      setChangingPwd(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -79,6 +100,62 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex min-h-screen bg-background">
+      {/* FORCE PASSWORD RESET OVERLAY */}
+      {user?.needsPasswordChange && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
+            <Card className="p-6 border-primary/20 shadow-2xl">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
+                <Shield className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground mb-1">Welcome, CEO.</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                For security purposes, you must change the default password before accessing the dashboard.
+              </p>
+              
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">New Password</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="password"
+                      placeholder="At least 6 characters"
+                      value={newPwd}
+                      onChange={e => setNewPwd(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Confirm Password</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="password"
+                      placeholder="Type it again"
+                      value={confirmPwd}
+                      onChange={e => setConfirmPwd(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 bg-muted/50 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+                
+                {pwdErr && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-destructive text-sm">
+                    <AlertCircle className="w-4 h-4" /> {pwdErr}
+                  </div>
+                )}
+                
+                <Button type="submit" loading={changingPwd} className="w-full bg-primary text-primary-foreground mt-2">
+                  Save & Continue to Dashboard
+                </Button>
+              </form>
+            </Card>
+          </motion.div>
+        </div>
+      )}
+
       {/* Mobile overlay */}
       {sidebarOpen && (
         <motion.div
@@ -140,7 +217,7 @@ export default function DashboardLayout() {
                 onChange={e => setSelectedInstructorId(e.target.value)}
                 className="w-full h-9 rounded-lg bg-[#0d1117] border border-white/10 text-xs text-white px-2"
               >
-                {instructors.length === 0 && <option value="">No instructors yet</option>}
+                <option value="">Global (Company-Wide)</option>
                 {instructors.map(instructor => (
                   <option key={instructor.id} value={instructor.id}>{instructor.name}</option>
                 ))}
@@ -175,7 +252,7 @@ export default function DashboardLayout() {
               <img src={user.image} alt={user.name} className="w-8 h-8 rounded-full" />
             ) : (
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1de9b6] to-[#2979ff] flex items-center justify-center text-white text-xs font-bold">
-                {user?.name?.[0]?.toUpperCase() || 'I'}
+                {user?.name?.[0]?.toUpperCase() || 'C'}
               </div>
             )}
             <div className="flex-1 min-w-0">
@@ -208,10 +285,12 @@ export default function DashboardLayout() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isMaster && activeInstructor && (
+            {isMaster && (
               <div className="hidden md:block text-right mr-2">
-                <p className="text-xs font-medium text-foreground">{activeInstructor.name}</p>
-                <p className="text-[11px] text-muted-foreground">selected instructor</p>
+                <p className="text-xs font-medium text-foreground">
+                  {activeInstructor ? activeInstructor.name : 'Company-Wide'}
+                </p>
+                <p className="text-[11px] text-muted-foreground">selected view</p>
               </div>
             )}
             <button className="relative p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
