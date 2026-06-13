@@ -1,7 +1,7 @@
 import { Badge, Button, Card, EmptyState } from '@/components/ui'
 import { displayDate } from '@/lib/csvParser'
 import { getAttendanceForBatch, getBatches, getSessionsForBatch, type Batch } from '@/lib/db'
-import { BookOpen, Calendar, Copy, Plus, Upload, Users } from 'lucide-react'
+import { BookOpen, Calendar, Copy, Plus, Upload, Users, AlertCircle } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 
@@ -21,6 +21,7 @@ export default function Batches() {
   const { effectiveInstructorId, isMaster } = useOutletContext<OutletContext>()
   const [rows, setRows] = useState<BatchRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState('')
 
   const loadBatches = useCallback(async () => {
@@ -31,6 +32,8 @@ export default function Batches() {
     }
 
     setLoading(true)
+    setError(null)
+    
     try {
       const batchList = await getBatches(effectiveInstructorId)
       const enriched = await Promise.all(batchList.map(async batch => {
@@ -46,6 +49,9 @@ export default function Batches() {
         }
       }))
       setRows(enriched)
+    } catch (err) {
+      console.error("Failed to load batches:", err)
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred while loading batches.')
     } finally {
       setLoading(false)
     }
@@ -68,6 +74,21 @@ export default function Batches() {
         {[...Array(3)].map((_, index) => (
           <div key={index} className="h-32 rounded-2xl bg-muted" />
         ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-xl flex flex-col items-center justify-center text-center space-y-3">
+        <AlertCircle className="w-8 h-8 text-red-500" />
+        <div>
+          <h3 className="text-lg font-semibold text-red-500">Failed to load batches</h3>
+          <p className="text-sm text-red-400 mt-1">{error}</p>
+        </div>
+        <Button onClick={loadBatches} variant="outline" className="mt-2 bg-transparent text-red-500 border-red-500/30 hover:bg-red-500/10">
+          Try Again
+        </Button>
       </div>
     )
   }
